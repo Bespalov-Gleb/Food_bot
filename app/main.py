@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from starlette.responses import HTMLResponse
 import asyncio
 from datetime import datetime, timedelta
+import json
 
 from app.routers import restaurants, menu, cart, orders
 from app.routers import config as config_router
@@ -32,6 +33,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 @app.get("/", response_class=HTMLResponse)

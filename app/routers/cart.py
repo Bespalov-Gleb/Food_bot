@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Dict, Optional
-from app.routers.menu import _DISHES, _GROUPS, _OPTIONS
+# Убираем неиспользуемые импорты
 from app.deps.auth import require_user_id
 from sqlalchemy.orm import Session
 from app.db import get_db
@@ -18,6 +18,10 @@ class CartItem(BaseModel):
     dish_id: int
     qty: int
     chosen_options: Optional[List[int]] = None
+    
+    class Config:
+        # Разрешаем дополнительные поля для совместимости
+        extra = "allow"
 
 
 class Cart(BaseModel):
@@ -25,9 +29,7 @@ class Cart(BaseModel):
     cutlery_count: int = 0
 
 
-# single in-memory cart per demo user
-_USER_CARTS: Dict[int, Cart] = {}
-_SEQ = 1
+# Константы для корзины
 _MAX_RESTAURANTS = 4
 
 
@@ -60,9 +62,9 @@ async def get_cart(user_id: int = Depends(require_user_id), db: Session = Depend
 
 @router.post("/items")
 async def add_item(item: CartItem, force: bool = False, user_id: int = Depends(require_user_id), db: Session = Depends(get_db)) -> Dict[str, int | str | list]:
-    print(f"DEBUG: Received cart item: {item}")
-    print(f"DEBUG: Item type: {type(item)}")
-    print(f"DEBUG: Item dict: {item.dict()}")
+    # Убеждаемся, что chosen_options не None
+    if item.chosen_options is None:
+        item.chosen_options = []
     print(f"DEBUG: Force flag: {force}")
     print(f"DEBUG: User ID: {user_id}")
     print(f"DEBUG: restaurant_id type: {type(item.restaurant_id)}, value: {item.restaurant_id}")
@@ -102,31 +104,31 @@ async def add_item(item: CartItem, force: bool = False, user_id: int = Depends(r
         raise HTTPException(status_code=404, detail="Dish not found")
     print(f"DEBUG: Dish found: {dish.name}, has_options: {dish.has_options}")
     
-    if dish.has_options:
-        print("DEBUG: Dish has options, validating chosen options...")
+    # Проверяем, есть ли реально группы опций в базе данных
+    groups = db.query(OGroup).filter(OGroup.dish_id == dish.id).all()
+    print(f"DEBUG: Found {len(groups)} option groups for dish {dish.id}")
+    
+    if groups:  # Если есть группы опций, валидируем
+        print("DEBUG: Dish has option groups, validating chosen options...")
         chosen = set(item.chosen_options or [])
         print(f"DEBUG: Chosen options: {chosen}")
         
-        # map group -> its options
-        groups = db.query(OGroup).filter(OGroup.dish_id == dish.id).all()
-        print(f"DEBUG: Found {len(groups)} option groups")
-        
         opt_map = {}
-        if groups:
-            g_ids = [g.id for g in groups]
-            opts = db.query(OOption).filter(OOption.group_id.in_(g_ids)).all()
-            print(f"DEBUG: Found {len(opts)} options")
-            
-            for g in groups:
-                opt_map[g.id] = {o.id for o in opts if o.group_id == g.id}
-                print(f"DEBUG: Group {g.id} has options: {opt_map[g.id]}")
+        g_ids = [g.id for g in groups]
+        opts = db.query(OOption).filter(OOption.group_id.in_(g_ids)).all()
+        print(f"DEBUG: Found {len(opts)} options")
+        
+        for g in groups:
+            opt_map[g.id] = {o.id for o in opts if o.group_id == g.id}
+            print(f"DEBUG: Group {g.id} has options: {opt_map[g.id]}")
         
         for g in groups:
             print(f"DEBUG: Validating group {g.id}: min_select={g.min_select}, max_select={g.max_select}, required={g.required}")
             count = len([oid for oid in chosen if oid in opt_map.get(g.id, set())])
             print(f"DEBUG: Selected count for group {g.id}: {count}")
             
-            min_required = g.min_select if g.min_select > 0 else (1 if g.required else 0)
+            # Для обязательных групп минимум 1, для необязательных - min_select
+            min_required = max(1, g.min_select) if g.required else g.min_select
             print(f"DEBUG: Min required for group {g.id}: {min_required}")
             
             if count < min_required:

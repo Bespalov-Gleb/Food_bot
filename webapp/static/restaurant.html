@@ -12,7 +12,7 @@
       display: flex;
       overflow-x: auto;
       gap: 12px;
-      padding: 16px 12px;
+      padding: 16px 16px;
       position: sticky;
       top: 0;
       background: #fff;
@@ -389,24 +389,34 @@
       font-size: 24px;
       font-weight: 700;
       color: #333;
-      margin: 24px 16px 16px;
+      margin: 24px 12px 16px;
       padding-left: 8px;
       border-left: 4px solid #dc2626;
     }
     
     .dishes-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
-      padding: 0 16px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 0 12px;
+      width: 100%;
+      box-sizing: border-box;
     }
     
     /* Адаптивность для мобильных устройств */
+    @media (max-width: 600px) {
+      .dishes-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 0 8px;
+      }
+    }
+    
     @media (max-width: 480px) {
       .dishes-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
-        padding: 0 12px;
+        gap: 8px;
+        padding: 0 8px;
       }
       
       .dish-card {
@@ -431,6 +441,35 @@
       }
     }
     
+    /* Стили для кнопки назад */
+    .back-button-container {
+      padding: 16px 16px 0;
+    }
+    
+    .back-btn {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 14px;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .back-btn:hover {
+      background: #f8f8f8;
+      border-color: #d0d0d0;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Стили для заголовка ресторана */
+    .restaurant-header {
+      padding: 16px 16px 0;
+    }
+    
     /* Стили для спейсера внизу */
     .bottom-spacer {
       height: 80px;
@@ -440,6 +479,11 @@
 </head>
 <body>
   <div class="container">
+    <!-- Кнопка назад -->
+    <div class="back-button-container">
+      <button class="back-btn" onclick="goBack()">← Назад</button>
+    </div>
+    
     <!-- Заголовок ресторана -->
     <div class="restaurant-header">
       <div class="restaurant-info">
@@ -698,17 +742,20 @@
             </div>
           `;
           
-          const controls = card.querySelector('.controls');
-          const addBtn = controls.querySelector('.add-btn');
-          addBtn.onclick = () => {
-            if (dish.has_options) {
-              const p = new URLSearchParams(location.search);
-              if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning','1');
-              location.href = '/static/dish.html?id=' + dish.id + '&' + p.toString();
-            } else {
-              updateQtyClient(dish.id, 1);
+          // Делаем всю карточку кликабельной для перехода к блюду
+          card.onclick = (e) => {
+            // Если кликнули на кнопку добавления или управления количеством, не переходим к блюду
+            if (e.target.closest('.add-btn') || e.target.closest('.qty-btn')) {
+              return;
             }
+            
+            const p = new URLSearchParams(location.search);
+            if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning','1');
+            location.href = '/static/dish.html?id=' + dish.id + '&' + p.toString();
           };
+          
+          const controls = card.querySelector('.controls');
+          // Обработчик будет установлен в renderQtyControls
           dishesGrid.appendChild(card);
         });
         
@@ -721,18 +768,20 @@
     
     async function addToCart(dishId, deltaQty) {
       const dish = dishesMap.get(dishId);
+      
       const cartData = { 
         restaurant_id: dish.restaurant_id, 
         dish_id: dish.id, 
         qty: deltaQty,
-        chosen_options: [] // Добавляем пустой массив опций
+        chosen_options: [] // Пустой массив для блюд без опций
       };
-      
-      console.log('Adding to cart from restaurant:', cartData);
       
       const res = await fetch(location.origin + '/api/cart/items' + (uid ? ('?uid=' + uid) : ''), {
         method: 'POST',
-        headers,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(cartData)
       });
       
@@ -751,7 +800,10 @@
         showTooManyModal(data.current_restaurant_ids || [], async () => {
           await fetch(location.origin + '/api/cart/items?force=true' + (uid ? ('&uid=' + uid) : ''), { 
             method: 'POST', 
-            headers, 
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json'
+            }, 
             body: JSON.stringify(cartData) 
           });
           await loadCartAndSync();
@@ -778,18 +830,21 @@
         const dishId = Number(c.getAttribute('data-dish'));
         const dish = dishesMap.get(dishId);
         const qty = getQtyForDish(dishId);
+        console.log('DEBUG: renderQtyControls - dishId:', dishId, 'dish:', dish, 'has_options:', dish?.has_options, 'qty:', qty);
         
         if (qty <= 0) {
           // Кнопка "+" для добавления блюда
           c.innerHTML = '<button class="add-btn">+</button>';
           c.querySelector('.add-btn').onclick = () => {
+            // Если у блюда есть опции, переходим к странице блюда
             if (dish?.has_options) {
               const p = new URLSearchParams(location.search);
-              if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+              if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning','1');
               location.href = '/static/dish.html?id=' + dishId + '&' + p.toString();
-            } else {
-              updateQtyClient(dishId, 1);
+              return;
             }
+            // Если опций нет, добавляем в корзину
+            updateQtyClient(dishId, 1);
           };
         } else {
           // Контролы с количеством: "-" количество "+"
@@ -806,13 +861,18 @@
           
           // Обработчик для кнопки "+"
           c.querySelector('[data-act="inc"]').onclick = () => {
+            console.log('DEBUG: renderQtyControls + button clicked - dishId:', dishId, 'dish:', dish, 'has_options:', dish?.has_options);
+            // Если у блюда есть опции, переходим к странице блюда
             if (dish?.has_options) {
+              console.log('DEBUG: Redirecting to dish page for options');
               const p = new URLSearchParams(location.search);
-              if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+              if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning','1');
               location.href = '/static/dish.html?id=' + dishId + '&' + p.toString();
-            } else {
-              updateQtyClient(dishId, 1);
+              return;
             }
+            console.log('DEBUG: Adding to cart directly');
+            // Если опций нет, добавляем в корзину
+            updateQtyClient(dishId, 1);
           };
         }
       });
@@ -820,13 +880,14 @@
     
     async function updateQtyClient(dishId, delta) {
       if (delta > 0) {
+        console.log('DEBUG: Adding to cart directly');
         await addToCart(dishId, 1);
       } else {
         const item = cart.items.find(i => i.dish_id === dishId && dishesMap.get(i.dish_id)?.restaurant_id === restaurantId);
         if (item) {
           const newQty = Math.max(0, item.qty - 1);
           if (newQty === 0) {
-            await fetch(api + '/cart/items/' + item.id + (uid ? ('&uid=' + uid) : ''), { method: 'DELETE', headers });
+            await fetch(api + '/cart/items/' + item.id + (uid ? ('?uid=' + uid) : ''), { method: 'DELETE', headers });
           } else {
             await fetch(api + '/cart/items/' + item.id + '?qty=' + newQty + (uid ? ('&uid=' + uid) : ''), { method: 'PATCH', headers });
           }
@@ -856,12 +917,20 @@
       
       // Минимальная сумма заказа из данных ресторана
       const r = restaurantsMap.get(restaurantId);
-      if (r && r.delivery_min_sum) {
+      const checkoutBtn = document.getElementById('goCheckout');
+      
+      if (r && r.delivery_min_sum && r.delivery_min_sum > 0) {
         const remaining = Math.max(0, r.delivery_min_sum - sum);
         if (remaining > 0) {
           document.getElementById('minOrderText').textContent = `Еще ${remaining} ₽ до минимального заказа`;
+          checkoutBtn.disabled = true;
+          checkoutBtn.textContent = `Добавьте еще на ${remaining} ₽`;
+          checkoutBtn.className = 'checkout-btn disabled';
         } else {
           document.getElementById('minOrderText').textContent = 'Минимальная сумма заказа достигнута';
+          checkoutBtn.disabled = false;
+          checkoutBtn.textContent = 'Оформить заказ';
+          checkoutBtn.className = 'checkout-btn';
         }
       } else {
         // Заглушка если нет данных о минимальной сумме
@@ -869,8 +938,14 @@
         const remaining = Math.max(0, minOrder - sum);
         if (remaining > 0) {
           document.getElementById('minOrderText').textContent = `Еще ${remaining} ₽ до минимального заказа`;
+          checkoutBtn.disabled = true;
+          checkoutBtn.textContent = `Добавьте еще на ${remaining} ₽`;
+          checkoutBtn.className = 'checkout-btn disabled';
         } else {
           document.getElementById('minOrderText').textContent = 'Минимальная сумма заказа достигнута';
+          checkoutBtn.disabled = false;
+          checkoutBtn.textContent = 'Оформить заказ';
+          checkoutBtn.className = 'checkout-btn';
         }
       }
       
@@ -1014,6 +1089,11 @@
       if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1'); 
       location.href = '/static/profile.html?' + p.toString(); 
     };
+    
+    // Функция для возврата назад
+    function goBack() {
+      history.back();
+    }
     
     // Primary initialization
     loadMenu();

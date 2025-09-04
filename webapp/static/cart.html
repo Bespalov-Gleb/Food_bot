@@ -508,7 +508,7 @@
     <button class="open-menu-btn" id="openMenuBtn" onclick="openMenu()">Открыть меню</button>
     
     <!-- Bottom Checkout Bar -->
-    <div class="checkout-bar">
+    <div class="checkout-bar" id="checkout-bar">
       <div class="checkout-content">
         <div class="cutlery-section">
           <span class="cutlery-icon">🍴</span>
@@ -546,37 +546,37 @@
     async function load() {
       try {
         console.log('Loading cart...');
-        const res = await fetch(api + '/cart' + (uid ? ('?uid=' + uid) : ''), { headers });
+      const res = await fetch(api + '/cart' + (uid ? ('?uid=' + uid) : ''), { headers });
         console.log('Cart response status:', res.status);
         
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
         
-        cart = await res.json();
+      cart = await res.json();
         console.log('Cart data:', cart);
         console.log('Cart items count:', cart.items?.length || 0);
         
         if (!cart.items || !cart.items.length) {
           console.log('Cart is empty, showing empty state');
           showEmptyCart();
-          return;
-        }
+        return;
+      }
         
-        const ids = [...new Set(cart.items.map(i => i.dish_id))];
+      const ids = [...new Set(cart.items.map(i => i.dish_id))];
         console.log('Dish IDs to fetch:', ids);
         
-        const dishes = await (await fetch(api + '/dishes?ids=' + ids.join(',') + (uid ? ('&uid=' + uid) : ''), { headers })).json();
+      const dishes = await (await fetch(api + '/dishes?ids=' + ids.join(',') + (uid ? ('&uid=' + uid) : ''), { headers })).json();
         console.log('Dishes loaded:', dishes.length);
-        dishesMap = new Map(dishes.map(d => [d.id, d]));
+      dishesMap = new Map(dishes.map(d => [d.id, d]));
         
-        const optionIds = [...new Set(cart.items.flatMap(i => (i.chosen_options || [])))];
-        if (optionIds.length) {
-          const opts = await (await fetch(api + '/options/lookup?ids=' + optionIds.join(','))).json();
-          optionsMap = new Map(opts.map(o => [o.id, o]));
-        }
+      const optionIds = [...new Set(cart.items.flatMap(i => (i.chosen_options || [])))];
+      if (optionIds.length) {
+        const opts = await (await fetch(api + '/options/lookup?ids=' + optionIds.join(','))).json();
+        optionsMap = new Map(opts.map(o => [o.id, o]));
+      }
         
-        const restIds = [...new Set(cart.items.map(i => dishesMap.get(i.dish_id)?.restaurant_id))].filter(Boolean);
+      const restIds = [...new Set(cart.items.map(i => dishesMap.get(i.dish_id)?.restaurant_id))].filter(Boolean);
         console.log('Restaurant IDs:', restIds);
         
         // Проверяем количество ресторанов
@@ -585,12 +585,12 @@
           return;
         }
         
-        const resR = await fetch(api + '/restaurants/_bulk?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : ''), { headers });
-        const rests = resR.ok ? await resR.json() : await (await fetch(api + '/restaurants/_by-ids?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : ''), { headers })).json();
-        restaurantsMap = new Map(rests.map(r => [r.id, r]));
+      const resR = await fetch(api + '/restaurants/_bulk?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : ''), { headers });
+      const rests = resR.ok ? await resR.json() : await (await fetch(api + '/restaurants/_by-ids?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : ''), { headers })).json();
+      restaurantsMap = new Map(rests.map(r => [r.id, r]));
         
-        if (!activeRestaurantId) activeRestaurantId = restIds[0];
-        restIdsCached = restIds;
+      if (!activeRestaurantId) activeRestaurantId = restIds[0];
+      restIdsCached = restIds;
         
         console.log('Rendering restaurant tabs and cart items...');
         renderRestaurantTabs();
@@ -599,6 +599,7 @@
         
       } catch (error) {
         console.error('Error loading cart:', error);
+        console.log('Showing empty cart due to error');
         showEmptyCart();
       }
     }
@@ -698,9 +699,27 @@
     async function deleteRestaurantCart(restaurantId) {
       if (confirm('Удалить корзину этого ресторана?')) {
         try {
-          await fetch(api + '/cart/clear?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { method: 'POST', headers });
-          // Перезагружаем корзину
-          await load();
+          const response = await fetch(api + '/cart/clear?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { method: 'POST', headers });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          // Удаляем элементы этого ресторана из локального объекта cart
+          cart.items = cart.items.filter(item => {
+            const dish = dishesMap.get(item.dish_id);
+            return dish && dish.restaurant_id !== restaurantId;
+          });
+          
+          // Если корзина стала пустой, показываем пустую корзину
+          if (!cart.items || cart.items.length === 0) {
+            showEmptyCart();
+          } else {
+            // Обновляем интерфейс
+            renderRestaurantTabs();
+            renderCartItems();
+            updateCheckoutBar();
+          }
         } catch (error) {
           console.error('Error deleting restaurant cart:', error);
         }
@@ -800,7 +819,7 @@
                 <button class="qty-btn" data-act="dec">−</button>
                 <span class="qty-display">${it.qty}</span>
                 <button class="qty-btn plus" data-act="inc">+</button>
-              </div>
+            </div>
             </div>
             <div class="cart-item-description">${optsLabel}</div>
             <div class="cart-item-price">${totalPrice} ₽</div>
@@ -809,7 +828,15 @@
         `;
         
         el.querySelector('[data-act="inc"]').onclick = () => updateQty(it.id, it.qty + 1);
-        el.querySelector('[data-act="dec"]').onclick = () => updateQty(it.id, Math.max(1, it.qty - 1));
+        el.querySelector('[data-act="dec"]').onclick = () => {
+          if (it.qty <= 1) {
+            // Если количество 1 или меньше, удаляем блюдо
+            deleteItem(it.id);
+          } else {
+            // Иначе уменьшаем количество
+            updateQty(it.id, it.qty - 1);
+          }
+        };
         
         root.appendChild(el);
       });
@@ -856,8 +883,22 @@
 
     async function updateQty(itemId, qty) {
       try {
-        await fetch(api + '/cart/items/' + itemId + '?qty=' + qty + (uid ? ('&uid=' + uid) : ''), { method: 'PATCH', headers });
-        await load();
+        const response = await fetch(api + '/cart/items/' + itemId + '?qty=' + qty + (uid ? ('&uid=' + uid) : ''), { method: 'PATCH', headers });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // Обновляем локальный объект cart
+        const item = cart.items.find(i => i.id === itemId);
+        if (item) {
+          item.qty = qty;
+        }
+        
+        // Обновляем интерфейс
+        renderRestaurantTabs();
+        renderCartItems();
+        updateCheckoutBar();
       } catch (error) {
         console.error('Error updating quantity:', error);
       }
@@ -895,17 +936,54 @@
       history.back();
     }
 
+    async function deleteItem(itemId) {
+      try {
+        // Удаляем блюдо через API
+        const response = await fetch(api + '/cart/items/' + itemId + (uid ? ('?uid=' + uid) : ''), { 
+          method: 'DELETE', 
+          headers 
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // Удаляем элемент из локального объекта cart
+        cart.items = cart.items.filter(item => item.id !== itemId);
+        
+        // Если корзина стала пустой, показываем пустую корзину
+        if (!cart.items || cart.items.length === 0) {
+          showEmptyCart();
+        } else {
+          // Обновляем интерфейс
+          renderRestaurantTabs();
+          renderCartItems();
+          updateCheckoutBar();
+        }
+      } catch (error) {
+        console.error('Error deleting item:', error);
+        alert('Ошибка при удалении блюда');
+      }
+    }
+
     async function clearCart() {
       if (confirm('Очистить корзину?')) {
         try {
           // Очищаем корзину через API
-          await fetch(api + '/cart/clear' + (uid ? ('?uid=' + uid) : ''), { 
+          const response = await fetch(api + '/cart/clear' + (uid ? ('?uid=' + uid) : ''), { 
             method: 'POST', 
             headers 
           });
           
-          // Перезагружаем корзину для отображения пустого состояния
-          await load();
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          // Очищаем локальный объект cart
+          cart.items = [];
+          
+          // Показываем пустую корзину
+          showEmptyCart();
         } catch (error) {
           console.error('Error clearing cart:', error);
           alert('Ошибка при очистке корзины');

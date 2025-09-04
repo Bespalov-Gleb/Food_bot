@@ -1,7 +1,7 @@
 /* v39 appetizing theme with proper 2-column grid */
 /* Copied from styles.css to force cache refresh in WebView */
 body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
-.container { padding: 16px; box-sizing: border-box; }
+.container { padding: 0; box-sizing: border-box; }
 .restaurant, .card { border: 1px solid #eee; border-radius: 8px; padding: 12px; margin: 8px 0; background: #fff; box-sizing: border-box; }
 .title { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
 .meta { color: #666; font-size: 13px; margin-bottom: 8px; }
@@ -185,13 +185,174 @@ img {
   border-bottom: 2px solid var(--border);
 }
 
-.dishes-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 8px;
+/* Стили для сетки блюд перенесены в HTML для лучшего контроля */
+
+.dish-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.dish-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.dish-image {
   width: 100%;
-  box-sizing: border-box;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px 8px 0 0;
+  display: block;
+}
+
+.dish-content {
+  padding: 12px;
+}
+
+.dish-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: var(--text);
+}
+
+.dish-description {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dish-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0 0 12px 0;
+}
+
+.dish-controls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.add-btn:hover {
+  background: var(--primary-600);
+  transform: scale(1.05);
+}
+
+.add-btn:active {
+  transform: scale(0.95);
+}
+
+/* Нижняя плашка заказа */
+.checkout-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  z-index: 1000;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+}
+
+.checkout-content {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cart-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cart-count {
+  width: 32px;
+  height: 32px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.total-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.min-order-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.checkout-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkout-btn:hover {
+  background: var(--primary-600);
+  transform: translateY(-1px);
+}
+
+.checkout-btn:disabled {
+  background: var(--muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bottom-spacer {
+  height: 0;
+  transition: height 0.3s ease;
 }
 
 /* Специальные стили для изображений блюд */
@@ -241,7 +402,7 @@ h3 { font-size: 18px; margin: 10px 0; }
 .cat-row button.active { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 6px 14px rgba(255,77,58,.2); }
 .tab { border: 1px solid var(--border); background: #fff; }
 .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 6px 14px rgba(255,77,58,.2); }
-.badge { background: var(--primary); color: #fff; box-shadow: 0 6px 14px rgba(255,77,58,.25); }
+
 button { border: 1px solid var(--border); background: #fff; color: var(--text); font-weight: 600; transition: background .15s ease, transform .06s ease, box-shadow .15s ease; }
 button:hover { background: #fff3ef; border-color: var(--accent); }
 button:active { transform: translateY(1px); }

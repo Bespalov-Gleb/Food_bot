@@ -57,17 +57,12 @@ async def start(message: types.Message) -> None:
 
 
 async def _is_restaurant_admin(user_id: int) -> bool:
-    print(f"DEBUG: _is_restaurant_admin called with user_id={user_id}")
-    print(f"DEBUG: INTERNAL_API_URL = {INTERNAL_API_URL}")
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=10) as client:
             url = INTERNAL_API_URL + "/api/ra/me"
-            print(f"DEBUG: Making request to {url}")
             r = await client.get(url, headers={"X-Telegram-User-Id": str(user_id)})
-            print(f"DEBUG: _is_restaurant_admin response status={r.status_code}")
             return r.status_code == 200
-    except Exception as e:
-        print(f"DEBUG: _is_restaurant_admin exception: {e}")
+    except Exception:
         return False
 
 
@@ -78,7 +73,6 @@ def _inline_kb(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
 
 RA_INLINE_KB = _inline_kb([
     [("Профиль ресторана", "ra_profile"), ("Меню", "open_menu")],
-    [("Профиль админа", "admin_profile")],
 ])
 
 
@@ -220,6 +214,7 @@ CONFIRM_KB = ReplyKeyboardMarkup(
 )
 
 ADD_FLOW: dict[int, dict] = {}
+BROADCAST_FLOW: dict[int, dict] = {}
 DEL_FLOW: dict[int, dict] = {}
 
 
@@ -408,9 +403,92 @@ async def admin_broadcast_callback(callback: types.CallbackQuery) -> None:
     if uid not in SUPER_ADMIN_IDS:
         await callback.answer("Нет доступа к рассылке.")
         return
-    await callback.message.answer("Функция рассылки будет добавлена позже.")
+    
+    # Создаем клавиатуру для выбора типа получателей
+    target_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="👥 Всем пользователям", callback_data="broadcast_all"),
+                InlineKeyboardButton(text="🛒 Только клиентам", callback_data="broadcast_clients")
+            ],
+            [
+                InlineKeyboardButton(text="🏪 Только ресторанам", callback_data="broadcast_restaurants")
+            ],
+            [
+                InlineKeyboardButton(text="❌ Отмена", callback_data="admin_back")
+            ]
+        ]
+    )
+    
+    await callback.message.answer(
+        "📢 <b>Рассылка</b>\n\n"
+        "Выберите, кому отправить сообщение:",
+        reply_markup=target_kb,
+        parse_mode="HTML"
+    )
     await callback.answer()
 
+
+# ===========================================
+# ОБРАБОТЧИКИ АДМИНКИ РЕСТОРАНА (ДОЛЖНЫ БЫТЬ ПЕРЕД ОБРАБОТЧИКАМИ РАССЫЛКИ)
+# ===========================================
+
+@dp.callback_query(F.data == "ra_profile")
+async def open_ra_profile(cb: types.CallbackQuery) -> None:
+    message = cb.message
+    user_id = cb.from_user.id  # Используем cb.from_user.id вместо message.from_user.id
+    if not await _is_restaurant_admin(user_id):
+        await cb.answer("Нет доступа", show_alert=True)
+        return
+    if not PUBLIC_WEBAPP_URL.lower().startswith("https://"):
+        url = PUBLIC_WEBAPP_URL + f"/static/ra_profile.html?uid={user_id}&ngrok-skip-browser-warning=1"
+        await cb.message.answer("Временно откройте по ссылке: " + url)
+        return
+    url = PUBLIC_WEBAPP_URL + f"/static/ra_profile.html?uid={user_id}&ngrok-skip-browser-warning=1"
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Открыть профиль ресторана", web_app=WebAppInfo(url=url))]])
+    await cb.message.answer("Профиль ресторана", reply_markup=kb)
+    await cb.answer()
+
+# ===========================================
+# ОБРАБОТЧИКИ РАССЫЛКИ
+# ===========================================
+
+@dp.callback_query(F.data.in_(["broadcast_all", "broadcast_clients", "broadcast_restaurants"]))
+async def broadcast_target_callback(callback: types.CallbackQuery) -> None:
+    uid = callback.from_user.id
+    if uid not in SUPER_ADMIN_IDS:
+        await callback.answer("Нет доступа к рассылке.")
+        return
+    
+    target_type = callback.data.replace("broadcast_", "")
+    
+    # Инициализируем состояние рассылки
+    # Очищаем PENDING_INPUT и ADD_FLOW, чтобы избежать конфликтов
+    PENDING_INPUT.pop(uid, None)
+    ADD_FLOW.pop(uid, None)
+    
+    BROADCAST_FLOW[uid] = {
+        "target_type": target_type,
+        "text": None,
+        "media_type": None,
+        "media_file_id": None,
+        "step": "text"
+    }
+    
+    target_names = {
+        "all": "всем пользователям",
+        "clients": "только клиентам", 
+        "restaurants": "только ресторанам"
+    }
+    
+    await callback.message.answer(
+        f"📝 <b>Введите текст сообщения</b>\n\n"
+        f"Получатели: {target_names[target_type]}\n\n"
+        f"💡 <i>Вы также можете отправить фото или видео с подписью</i>\n\n"
+        f"Для отмены напишите: <code>отмена</code>",
+        parse_mode="HTML"
+    )
+    await callback.answer()
 
 
 @dp.callback_query(F.data == "admin_web")
@@ -508,6 +586,12 @@ async def ga_cancel(message: types.Message) -> None:
 @dp.message(lambda message: message.text.lower() == "отмена" and message.from_user.id in ADD_FLOW)
 async def cancel_add_restaurant(message: types.Message) -> None:
     uid = message.from_user.id
+    
+    # Не обрабатываем, если пользователь в состоянии рассылки
+    if uid in BROADCAST_FLOW:
+        print(f"DEBUG: User {uid} in BROADCAST_FLOW, skipping ADD_FLOW cancel handler")
+        return
+    
     if uid in ADD_FLOW:
         ADD_FLOW.pop(uid, None)
         await message.answer("❌ Добавление ресторана отменено.")
@@ -517,6 +601,12 @@ async def cancel_add_restaurant(message: types.Message) -> None:
 @dp.message(lambda message: message.from_user.id in ADD_FLOW and ADD_FLOW[message.from_user.id].get("step") == "username" and message.text and (message.text.startswith("@") or message.text.isdigit()))
 async def handle_add_restaurant_username(message: types.Message) -> None:
     uid = message.from_user.id
+    
+    # Не обрабатываем, если пользователь в состоянии рассылки
+    if uid in BROADCAST_FLOW:
+        print(f"DEBUG: User {uid} in BROADCAST_FLOW, skipping restaurant username handler")
+        return
+    
     print(f"DEBUG: Username handler triggered for user {uid}, text: {message.text}")
     
     state = ADD_FLOW[uid]
@@ -544,6 +634,12 @@ async def handle_add_restaurant_username(message: types.Message) -> None:
 @dp.message(lambda message: message.from_user.id in ADD_FLOW and ADD_FLOW[message.from_user.id].get("step") == "name")
 async def handle_add_restaurant_name(message: types.Message) -> None:
     uid = message.from_user.id
+    
+    # Не обрабатываем, если пользователь в состоянии рассылки
+    if uid in BROADCAST_FLOW:
+        print(f"DEBUG: User {uid} in BROADCAST_FLOW, skipping restaurant name handler")
+        return
+    
     print(f"DEBUG: Restaurant name handler triggered for user {uid}, text: {message.text}")
     
     state = ADD_FLOW[uid]
@@ -624,25 +720,6 @@ async def ga_delete_restaurant(message: types.Message) -> None:
     except Exception:
         await message.answer("Не удалось получить список ресторанов.")
 
-@dp.callback_query(F.data == "ra_profile")
-async def open_ra_profile(cb: types.CallbackQuery) -> None:
-    message = cb.message
-    user_id = cb.from_user.id  # Используем cb.from_user.id вместо message.from_user.id
-    print(f"DEBUG: open_ra_profile called with user_id={user_id}")
-    if not await _is_restaurant_admin(user_id):
-        print(f"DEBUG: open_ra_profile: access denied for user_id={user_id}")
-        await cb.answer("Нет доступа", show_alert=True)
-        return
-    if not PUBLIC_WEBAPP_URL.lower().startswith("https://"):
-        url = PUBLIC_WEBAPP_URL + f"/static/ra_profile.html?uid={user_id}&ngrok-skip-browser-warning=1"
-        await cb.message.answer("Временно откройте по ссылке: " + url)
-        return
-    url = PUBLIC_WEBAPP_URL + f"/static/ra_profile.html?uid={user_id}&ngrok-skip-browser-warning=1"
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Открыть профиль ресторана", web_app=WebAppInfo(url=url))]])
-    await cb.message.answer("Профиль ресторана", reply_markup=kb)
-    await cb.answer()
-
-
 @dp.callback_query(F.data == "open_menu")
 async def open_main_menu(cb: types.CallbackQuery) -> None:
     url = PUBLIC_WEBAPP_URL + f"/static/index.html?uid={cb.from_user.id}&ngrok-skip-browser-warning=1"
@@ -656,16 +733,6 @@ async def open_main_menu(cb: types.CallbackQuery) -> None:
 
 # -------- Профиль админа: подменю и ввод --------
 
-def build_admin_profile_kb(is_enabled: bool) -> ReplyKeyboardMarkup:
-    toggle_text = "Выключить ресторан" if is_enabled else "Включить ресторан"
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="Данные ресторана"), KeyboardButton(text=toggle_text)],
-            [KeyboardButton(text="Заказы"), KeyboardButton(text="Условия заказа")],
-            [KeyboardButton(text="Назад")],
-        ],
-        resize_keyboard=True,
-    )
 
 RESTAURANT_DATA_KB = ReplyKeyboardMarkup(
     keyboard=[
@@ -685,22 +752,6 @@ ORDER_TERMS_KB = ReplyKeyboardMarkup(
 )
 
 
-@dp.callback_query(F.data == "admin_profile")
-async def open_admin_profile(cb: types.CallbackQuery) -> None:
-    if not await _is_restaurant_admin(cb.from_user.id):
-        await cb.answer("Нет доступа", show_alert=True)
-        return
-    # получить текущий статус ресторана
-    is_enabled = True
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            info = await client.get(PUBLIC_WEBAPP_URL + "/api/ra/restaurant", headers={"X-Telegram-User-Id": str(cb.from_user.id)})
-            if info.status_code == 200:
-                is_enabled = bool((info.json() or {}).get("is_enabled", True))
-    except Exception:
-        pass
-    await cb.message.answer("Профиль админа", reply_markup=build_admin_profile_kb(is_enabled))
-    await cb.answer()
 
 
 @dp.message(F.text == "Данные ресторана")
@@ -723,7 +774,7 @@ async def toggle_restaurant(message: types.Message) -> None:
             r = info.json()
             enabled = not bool(r.get("is_enabled"))
             await client.post(PUBLIC_WEBAPP_URL + f"/api/ra/restaurant/status?enabled={'true' if enabled else 'false'}", headers={"X-Telegram-User-Id": str(uid)})
-        await message.answer("Статус обновлён.", reply_markup=build_admin_profile_kb(enabled))
+        await message.answer("Статус обновлён.", reply_markup=RA_INLINE_KB)
     except Exception:
         await message.answer("Не удалось обновить статус.")
 
@@ -825,10 +876,136 @@ async def go_back(message: types.Message) -> None:
         await message.answer("Главное меню")
 
 
+# ===========================================
+# ОБРАБОТЧИКИ РАССЫЛКИ (ДОЛЖНЫ БЫТЬ ПЕРЕД ОБЩИМ ОБРАБОТЧИКОМ)
+# ===========================================
+
+@dp.message(lambda message: message.from_user.id in BROADCAST_FLOW)
+async def broadcast_text_handler(message: types.Message) -> None:
+    uid = message.from_user.id
+    state = BROADCAST_FLOW.get(uid)
+    if not state:
+        return
+    
+    # Проверяем, что мы в правильном шаге
+    if state.get("step") != "text":
+        return
+    
+    # Обрабатываем медиа
+    if message.photo:
+        state["media_type"] = "photo"
+        state["media_file_id"] = message.photo[-1].file_id
+        state["text"] = message.caption or ""
+    elif message.video:
+        state["media_type"] = "video"
+        state["media_file_id"] = message.video.file_id
+        state["text"] = message.caption or ""
+    elif message.text:
+        state["text"] = message.text
+        state["media_type"] = None
+        state["media_file_id"] = None
+    else:
+        await message.answer("❌ Поддерживаются только текст, фото и видео.")
+        return
+    
+    # Показываем превью и кнопку подтверждения
+    target_names = {
+        "all": "всем пользователям",
+        "clients": "только клиентам", 
+        "restaurants": "только ресторанам"
+    }
+    
+    preview_text = f"📢 <b>Превью рассылки</b>\n\n"
+    preview_text += f"<b>Получатели:</b> {target_names[state['target_type']]}\n"
+    preview_text += f"<b>Текст:</b> {state['text'][:200]}{'...' if len(state['text']) > 200 else ''}\n"
+    
+    if state['media_type']:
+        preview_text += f"<b>Медиа:</b> {state['media_type']}\n"
+    
+    confirm_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Отправить", callback_data="broadcast_confirm"),
+                InlineKeyboardButton(text="❌ Отмена", callback_data="broadcast_cancel")
+            ]
+        ]
+    )
+    
+    await message.answer(preview_text, reply_markup=confirm_kb, parse_mode="HTML")
+
+
+@dp.callback_query(F.data == "broadcast_confirm")
+async def broadcast_confirm_callback(callback: types.CallbackQuery) -> None:
+    uid = callback.from_user.id
+    state = BROADCAST_FLOW.get(uid)
+    if not state:
+        await callback.answer("Состояние рассылки не найдено.")
+        return
+    
+    try:
+        # Отправляем рассылку через API
+        async with httpx.AsyncClient(timeout=30) as client:
+            payload = {
+                "text": state["text"],
+                "media_type": state["media_type"],
+                "media_file_id": state["media_file_id"],
+                "target_type": state["target_type"]
+            }
+            
+            response = await client.post(
+                INTERNAL_API_URL + "/api/admin/broadcast",
+                json=payload,
+                headers={"X-Telegram-User-Id": str(uid)}
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                await callback.message.answer(
+                    f"✅ <b>Рассылка отправлена!</b>\n\n"
+                    f"📊 Отправлено: {result.get('sent', 0)}\n"
+                    f"❌ Ошибок: {result.get('failed', 0)}\n"
+                    f"📈 Всего получателей: {result.get('total', 0)}",
+                    reply_markup=ADMIN_INLINE_KB,
+                    parse_mode="HTML"
+                )
+            else:
+                await callback.message.answer(
+                    f"❌ Ошибка отправки рассылки: {response.text}",
+                    reply_markup=ADMIN_INLINE_KB
+                )
+    
+    except Exception as e:
+        await callback.message.answer(
+            f"❌ Ошибка: {str(e)}",
+            reply_markup=ADMIN_INLINE_KB
+        )
+    
+    finally:
+        BROADCAST_FLOW.pop(uid, None)
+    
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "broadcast_cancel")
+async def broadcast_cancel_callback(callback: types.CallbackQuery) -> None:
+    uid = callback.from_user.id
+    BROADCAST_FLOW.pop(uid, None)
+    await callback.message.answer("❌ Рассылка отменена.", reply_markup=ADMIN_INLINE_KB)
+    await callback.answer()
+
+# ===========================================
+# ОБЩИЙ ОБРАБОТЧИК СООБЩЕНИЙ
+# ===========================================
+
 @dp.message()
 async def handle_text_inputs(message: types.Message) -> None:
     # Обработка ожидаемого текстового ввода
     uid = message.from_user.id
+    
+    # Не обрабатываем, если пользователь в состоянии рассылки
+    if uid in BROADCAST_FLOW:
+        return
+    
     task = PENDING_INPUT.get(uid)
     if not task or not message.text:
         return
@@ -1277,6 +1454,16 @@ async def restaurant_admin_entry(message: types.Message) -> None:
         inline_keyboard=[[InlineKeyboardButton(text="Админка ресторана", web_app=WebAppInfo(url=url))]]
     )
     await message.answer("Админка ресторана", reply_markup=kb)
+
+
+# === ОБРАБОТЧИКИ ДЛЯ РАССЫЛКИ ===
+
+@dp.message(lambda message: message.text and message.text.lower() == "отмена" and message.from_user.id in BROADCAST_FLOW)
+async def broadcast_cancel(message: types.Message) -> None:
+    uid = message.from_user.id
+    if uid in BROADCAST_FLOW:
+        BROADCAST_FLOW.pop(uid, None)
+    await message.answer("❌ Рассылка отменена.", reply_markup=ADMIN_INLINE_KB)
 
 
 async def main() -> None:

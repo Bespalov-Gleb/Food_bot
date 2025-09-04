@@ -12,6 +12,15 @@ from app.models import Category as OCategory, Dish as ODish, OptionGroup as OGro
 router = APIRouter()
 
 
+def update_dish_has_options(dish_id: int, db: Session):
+    """Обновляет флаг has_options для блюда на основе количества групп опций"""
+    groups_count = db.query(OGroup).filter(OGroup.dish_id == dish_id).count()
+    dish = db.query(ODish).filter(ODish.id == dish_id).first()
+    if dish:
+        dish.has_options = groups_count > 0
+        db.commit()
+
+
 class CategoryCreate(BaseModel):
     name: str
     sort: int = 0
@@ -201,6 +210,10 @@ async def ra_create_group(payload: GroupCreate, rid: int = Depends(require_resta
                min_select=payload.min_select, max_select=payload.max_select, required=payload.required)
     db.add(g)
     db.commit()
+    
+    # Обновляем флаг has_options для блюда
+    update_dish_has_options(payload.dish_id, db)
+    
     return {"id": new_id}
 
 
@@ -231,6 +244,10 @@ async def ra_delete_group(group_id: int, rid: int = Depends(require_restaurant_i
     db.query(OOption).filter(OOption.group_id == group_id).delete(synchronize_session=False)
     db.delete(g)
     db.commit()
+    
+    # Обновляем флаг has_options для блюда
+    update_dish_has_options(g.dish_id, db)
+    
     return {"status": "ok"}
 
 

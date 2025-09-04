@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List
 from app.deps.auth import require_super_admin
 from app.routers.restaurants import Restaurant
-from app.services.telegram import send_admin_message
+from app.services.telegram import send_admin_message, bot
 from app.store import ensure_user, bind_restaurant_admin, unbind_restaurant_admin
 from app.models import Review as DBReview
 from sqlalchemy.orm import Session
@@ -148,15 +148,117 @@ async def delete_restaurant(restaurant_id: int, db: Session = Depends(get_db)) -
 
 class Broadcast(BaseModel):
     text: str
+    media_type: str | None = None  # "photo", "video", None
+    media_file_id: str | None = None  # Telegram file_id
+    target_type: str = "all"  # "all", "clients", "restaurants"
+
+
+def get_target_users(target_type: str, db: Session) -> List[int]:
+    """Получает список ID пользователей для рассылки"""
+    if target_type == "all":
+        # Все пользователи
+        users = db.query(DBUser).filter(DBUser.is_blocked == False).all()
+        return [user.id for user in users]
+    
+    elif target_type == "clients":
+        # Только клиенты (не админы ресторанов)
+        admin_user_ids = db.query(DBRestaurantAdmin.user_id).all()
+        admin_user_ids = [row[0] for row in admin_user_ids]
+        
+        users = db.query(DBUser).filter(
+            DBUser.is_blocked == False,
+            ~DBUser.id.in_(admin_user_ids)
+        ).all()
+        return [user.id for user in users]
+    
+    elif target_type == "restaurants":
+        # Только админы ресторанов
+        admin_user_ids = db.query(DBRestaurantAdmin.user_id).all()
+        admin_user_ids = [row[0] for row in admin_user_ids]
+        
+        users = db.query(DBUser).filter(
+            DBUser.is_blocked == False,
+            DBUser.id.in_(admin_user_ids)
+        ).all()
+        return [user.id for user in users]
+    
+    return []
 
 
 @router.post("/broadcast")
-async def broadcast(payload: Broadcast) -> dict:
+async def broadcast(payload: Broadcast, db: Session = Depends(get_db)) -> dict:
+    """Отправляет рассылку пользователям"""
     try:
-        await send_admin_message(f"[broadcast] {payload.text}")
-    except Exception:
-        pass
-    return {"status": "ok"}
+        # Получаем список получателей
+        target_user_ids = get_target_users(payload.target_type, db)
+        
+        if not target_user_ids:
+            return {"status": "error", "message": "Нет получателей для рассылки"}
+        
+        # Отправляем уведомление админу о начале рассылки
+        await send_admin_message(
+            f"📢 Начинаю рассылку для {len(target_user_ids)} получателей\n"
+            f"Тип: {payload.target_type}\n"
+            f"Текст: {payload.text[:100]}{'...' if len(payload.text) > 100 else ''}"
+        )
+        
+        # Счетчики
+        sent_count = 0
+        failed_count = 0
+        
+        # Проверяем, что бот доступен
+        if not bot:
+            return {"status": "error", "message": "Bot not initialized"}
+        
+        # Отправляем сообщения
+        for user_id in target_user_ids:
+            try:
+                if payload.media_type == "photo" and payload.media_file_id:
+                    await bot.send_photo(
+                        chat_id=user_id,
+                        photo=payload.media_file_id,
+                        caption=payload.text
+                    )
+                elif payload.media_type == "video" and payload.media_file_id:
+                    await bot.send_video(
+                        chat_id=user_id,
+                        video=payload.media_file_id,
+                        caption=payload.text
+                    )
+                else:
+                    await bot.send_message(
+                        chat_id=user_id,
+                        text=payload.text
+                    )
+                sent_count += 1
+                
+                # Небольшая задержка между сообщениями
+                import asyncio
+                await asyncio.sleep(0.05)
+                
+            except Exception as e:
+                failed_count += 1
+                print(f"Failed to send to user {user_id}: {e}")
+                continue
+        
+        # Отправляем отчет админу
+        await send_admin_message(
+            f"✅ Рассылка завершена!\n"
+            f"📊 Отправлено: {sent_count}\n"
+            f"❌ Ошибок: {failed_count}\n"
+            f"📈 Успешность: {sent_count/(sent_count+failed_count)*100:.1f}%"
+        )
+        
+        return {
+            "status": "ok", 
+            "sent": sent_count, 
+            "failed": failed_count,
+            "total": len(target_user_ids)
+        }
+        
+    except Exception as e:
+        await send_admin_message(f"❌ Ошибка рассылки: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
 
 # users management
