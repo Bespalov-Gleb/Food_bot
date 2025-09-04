@@ -167,6 +167,85 @@ button { padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; backgrou
     }
 }
 
+/* Адаптивность для очень маленьких экранов (Telegram WebView) */
+@media (max-width: 400px) {
+  .dishes-grid { 
+    grid-template-columns: 1fr !important; 
+    gap: 8px !important; 
+    padding: 8px !important; 
+  }
+  
+  .dish-card { 
+    border-radius: 6px !important; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important; 
+  }
+  
+  .dish-image { 
+    height: 100px !important; 
+  }
+  
+  .dish-content { 
+    padding: 8px !important; 
+  }
+  
+  .dish-name { 
+    font-size: 13px !important; 
+    margin: 0 0 2px 0 !important; 
+  }
+  
+  .dish-description { 
+    font-size: 11px !important; 
+    margin: 0 0 4px 0 !important; 
+  }
+  
+  .dish-price { 
+    font-size: 15px !important; 
+    margin: 0 0 6px 0 !important; 
+  }
+  
+  .dish-controls .qty button { 
+    width: 26px !important; 
+    height: 26px !important; 
+    font-size: 12px !important; 
+  }
+}
+
+/* Адаптивность для средних экранов (планшеты) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .dishes-grid { 
+    grid-template-columns: 1fr 1fr !important; 
+    gap: 10px !important; 
+    padding: 14px !important; 
+  }
+  
+  .dish-image { 
+    height: 90px !important; 
+  }
+  
+  .dish-content { 
+    padding: 10px !important; 
+  }
+}
+
+/* Адаптивность для больших экранов (десктоп) */
+@media (min-width: 769px) {
+  .dishes-grid { 
+    grid-template-columns: 1fr 1fr !important; 
+    gap: 16px !important; 
+    padding: 20px !important; 
+    max-width: 800px !important; 
+    margin: 0 auto !important; 
+  }
+  
+  .dish-image { 
+    height: 100px !important; 
+  }
+  
+  .dish-content { 
+    padding: 12px !important; 
+  }
+}
+
 /* Carousel variant (one card visible) */
 .carousel { position: relative; overflow: hidden; padding: 0; }
 .carousel-track { display: flex; transition: transform 300ms ease; will-change: transform; }
