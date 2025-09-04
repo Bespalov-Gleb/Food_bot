@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Заказы ресторана</title>
-  <link rel="stylesheet" href="/static/styles.v23.css?v=32" />
+           <link rel="stylesheet" href="/static/styles.v23.css?v=32" />
   <style>
     .admin-buttons {
       display: grid;
@@ -75,44 +75,44 @@
       color: #6b7280;
     }
     
-    .order-actions {
-      position: absolute;
-      bottom: 8px;
-      right: 8px;
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
+         .order-actions {
+       position: absolute;
+       bottom: 8px;
+       right: 8px;
+       display: flex;
+       gap: 6px;
+       align-items: center;
+     }
      
-    .order-actions button {
-      padding: 8px 16px;
-      background: white;
-      color: #374151;
-      border: 1px solid #d1d5db;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 24px;
-      height: 32px;
-    }
+     .order-actions button {
+       padding: 8px 16px;
+       background: white;
+       color: #374151;
+       border: 1px solid #d1d5db;
+       border-radius: 20px;
+       font-size: 12px;
+       font-weight: 500;
+       cursor: pointer;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       min-width: 24px;
+       height: 32px;
+     }
      
-    .order-actions button.accept {
-      background: #10b981;
-      color: white;
-      border-color: #10b981;
-    }
+     .order-actions button.accept {
+       background: #10b981;
+       color: white;
+       border-color: #10b981;
+     }
      
-    .order-actions button.accept:hover {
-      background: #059669;
-    }
+     .order-actions button.accept:hover {
+       background: #059669;
+     }
      
-    .order-actions button.delivered:hover {
-      background: #2563eb;
-    }
+     .order-actions button.delivered:hover {
+       background: #2563eb;
+     }
 
     /* Модальное окно для обработки заказа */
     .order-modal-overlay {
@@ -246,7 +246,7 @@
       background: #d1d5db;
       cursor: not-allowed;
     }
-    
+     
     /* Стили для изменения заказа */
     .order-items-edit-section {
       margin-bottom: 20px;
@@ -258,13 +258,13 @@
     
     .order-items-list {
       max-height: 300px;
-      overflow-y: auto;
-    }
-    
+       overflow-y: auto;
+     }
+     
     .order-item-edit {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
       padding: 12px;
       border: 1px solid #e5e7eb;
       border-radius: 6px;
@@ -297,15 +297,15 @@
     }
     
     .item-quantity-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
+       display: flex;
+       align-items: center;
+       gap: 8px;
+     }
+     
     .qty-btn {
       width: 32px;
       height: 32px;
-      border: 1px solid #d1d5db;
+       border: 1px solid #d1d5db;
       background: white;
       color: #374151;
       border-radius: 6px;
@@ -319,7 +319,7 @@
     }
     
     .qty-btn:hover {
-      background: #f3f4f6;
+       background: #f3f4f6;
       border-color: #9ca3af;
     }
     
@@ -331,10 +331,10 @@
       width: 50px;
       height: 32px;
       border: 1px solid #d1d5db;
-      border-radius: 6px;
+       border-radius: 6px;
       text-align: center;
       font-size: 14px;
-      font-weight: 500;
+       font-weight: 500;
     }
     
     .qty-input:focus {
@@ -553,7 +553,7 @@
           console.log('API test data:', testData);
           
           // Теперь загружаем заказы
-          console.log('Loading orders...');
+      console.log('Loading orders...');
           const ordersRes = await fetch(api + '/ra/orders', { headers });
           console.log('Orders response:', ordersRes.status, ordersRes.ok);
           
@@ -569,23 +569,23 @@
                 // Сортируем заказы с последнего по первый
                 orders.slice().reverse().forEach(order => {
                   html += `<div class="order-item" onclick="openOrderDetails(${order.id})" style="cursor: pointer;">
-                    <div class="order-header">
+          <div class="order-header">
                       <span class="order-id">Заказ #${order.id}</span>
                       <span class="order-status status-${order.status}">${getStatusText(order.status)}</span>
-                    </div>
-                    <div class="order-details">
+          </div>
+          <div class="order-details">
                       Сумма: ${order.total_price} ₽ · ${order.delivery_type === 'delivery' ? 'Доставка' : 'Самовывоз'}
-                    </div>
-                    <div class="order-details">
+          </div>
+          <div class="order-details">
                       ${order.address ? `Адрес: ${order.address} · ` : ''}Телефон: ${order.phone}
-                    </div>
-                    <div class="order-items">
+          </div>
+          <div class="order-items">
                       ${Array.isArray(order.items) ? order.items.map(i => `${i.name} × ${i.qty}`).join(', ') : 'Нет данных'}
-                    </div>
-                    <div class="order-details">
+          </div>
+          <div class="order-details">
                       ${new Date(order.created_at).toLocaleString('ru-RU')}
-                    </div>
-                  </div>`;
+          </div>
+          </div>`;
                 });
                 olist.innerHTML = html;
               } else {
@@ -620,7 +620,7 @@
       };
       return statusMap[status] || status;
     }
-    
+
     // ===== ФУНКЦИИ МОДАЛЬНОГО ОКНА =====
     function selectAction(element, value) {
       console.log('selectAction called:', value);
@@ -923,9 +923,9 @@
         console.log('Order data loaded:', order);
         
         // Создаем модальное окно для изменения заказа
-        const modal = document.createElement('div');
+      const modal = document.createElement('div');
         modal.className = 'order-modal-overlay';
-        modal.innerHTML = `
+      modal.innerHTML = `
           <div class="order-modal" style="max-width: 95%; max-height: 90%;">
             <button class="order-modal-close" onclick="this.closest('.order-modal-overlay').remove()">×</button>
             <div class="order-modal-title">Изменение заказа #${orderId}</div>
@@ -933,14 +933,14 @@
             <div class="order-details-section">
               <div class="order-detail-item">
                 <span class="order-detail-label">Статус:</span> ${getStatusText(order.status)}
-              </div>
+          </div>
               <div class="order-detail-item">
                 <span class="order-detail-label">Сумма:</span> ${order.total_price} ₽
-              </div>
+                    </div>
               <div class="order-detail-item">
                 <span class="order-detail-label">Тип доставки:</span> ${order.delivery_type === 'delivery' ? 'Доставка' : 'Самовывоз'}
-              </div>
-            </div>
+                    </div>
+                </div>
             
             <div class="order-items-edit-section">
               <h4 style="margin: 16px 0 12px 0; color: #1f2937; font-size: 16px;">Состав заказа</h4>
@@ -956,11 +956,11 @@
                       <input type="number" class="qty-input" value="${item.qty}" min="0" max="99" 
                              onchange="updateItemQuantity(${index}, this.value)">
                       <button class="qty-btn qty-plus" onclick="changeItemQuantity(${index}, 1)">+</button>
-                    </div>
-                  </div>
-                `).join('')}
+                </div>
               </div>
-            </div>
+            `).join('')}
+          </div>
+          </div>
             
             <div class="modify-comment-section">
               <label class="comment-label">Комментарий к изменению заказа:</label>
@@ -977,11 +977,11 @@
               <button class="modify-btn modify-save" onclick="saveOrderModification(${orderId})" disabled>
                 Сохранить изменения
               </button>
-            </div>
           </div>
-        `;
-        
-        document.body.appendChild(modal);
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
         console.log('Modify modal created and appended');
         
         // Активируем кнопку сохранения при вводе комментария
@@ -1013,13 +1013,13 @@
       const originalQty = parseInt(itemElement.dataset.originalQty);
       
       // Визуально показываем изменения
-      if (newQty !== originalQty) {
+        if (newQty !== originalQty) {
         itemElement.classList.add('modified');
       } else {
         itemElement.classList.remove('modified');
+        }
       }
-    }
-    
+      
     // Функция сохранения изменений заказа
     async function saveOrderModification(orderId) {
       console.log('=== SAVE ORDER MODIFICATION ===');
@@ -1066,8 +1066,8 @@
         // Если есть изменения в блюдах, отправляем их
         if (modifications.length > 0) {
           const res = await fetch(api + '/ra/orders/' + orderId + '/modify-items', {
-            method: 'POST',
-            headers: { ...headers, 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               items: modifications,
               comment: comment
@@ -1080,10 +1080,10 @@
             document.querySelector('.order-modal-overlay').remove();
             // Перезагружаем заказы
             simpleLoad();
-          } else {
+        } else {
             const errorText = await res.text();
             throw new Error(`Ошибка API: ${res.status} - ${errorText}`);
-          }
+        }
         } else {
           // Если нет изменений в блюдах, отправляем только комментарий
           const res = await fetch(api + '/ra/orders/' + orderId + '/modify?comment=' + encodeURIComponent(comment), {
@@ -1257,7 +1257,7 @@
           console.log('Modal computed style:', window.getComputedStyle(modal));
           
         }, 3000); // Ждем 3 секунды после загрузки страницы
-      } else {
+          } else {
         console.log('=== NO ORDER_ID IN URL ===');
         console.log('Modal will not open automatically');
       }

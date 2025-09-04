@@ -2,6 +2,7 @@ import os
 import httpx
 from dotenv import load_dotenv
 from app.logging_config import get_logger
+from aiogram import Bot
 
 
 load_dotenv()
@@ -12,6 +13,9 @@ ADMIN_CHANNEL_ID = os.getenv("ADMIN_CHANNEL_ID", "")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 SUPPORT_TG_URL = os.getenv("SUPPORT_TG_URL", "https://t.me/support")
 logger = get_logger("telegram")
+
+# Создаем объект бота для рассылки
+bot = Bot(BOT_TOKEN) if BOT_TOKEN else None
 
 
 async def send_admin_message(text: str) -> None:

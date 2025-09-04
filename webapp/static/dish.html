@@ -8,7 +8,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <div class="container">
+  <div class="container" style="padding-bottom: 120px;">
     <div style="margin-bottom:8px"><a id="back" href="#">Назад</a></div>
     <div class="dish-hero"><img id="heroImg" src="" alt=""/></div>
     <div id="header"></div>
@@ -231,7 +231,10 @@
         
         const res = await fetch(api + '/cart/items' + (uid ? ('?uid=' + uid) : ''), {
           method: 'POST',
-          headers,
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify(cartData)
         });
         
@@ -246,21 +249,24 @@
         const data = await res.json();
         console.log('Response data:', data);
         
-                 if (data.status === 'ok') {
-           return;
-         }
+        if (data.status === 'ok') {
+          // После успешного добавления меняем кнопку
+          addBtn.textContent = 'Далее';
+          addBtn.style.background = '#28a745';
+          addBtn.style.borderColor = '#28a745';
+          return;
+        }
         if (data && data.status === 'too_many_restaurants') {
           showTooManyModal(data.current_restaurant_ids || [], async () => {
-                         await fetch(api + '/cart/items?force=true' + (uid ? ('&uid=' + uid) : ''), {
-               method: 'POST', headers,
-               body: JSON.stringify(cartData)
-             });
+            await fetch(api + '/cart/items?force=true' + (uid ? ('&uid=' + uid) : ''), {
+              method: 'POST', 
+              headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(cartData)
+            });
           });
-        } else {
-                     // После успешного добавления меняем кнопку
-           addBtn.textContent = 'Далее';
-           addBtn.style.background = '#28a745';
-           addBtn.style.borderColor = '#28a745';
         }
       } catch (error) {
         console.error('Error adding to cart:', error);

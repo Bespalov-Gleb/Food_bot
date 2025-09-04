@@ -407,7 +407,7 @@
   </div>
 
   <script>
-    const api = location.origin + '/api';
+const api = location.origin + '/api';
     const q = new URLSearchParams(location.search);
     const uid = Number(q.get('uid')) || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 0);
     const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};

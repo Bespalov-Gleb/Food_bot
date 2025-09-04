@@ -50,21 +50,6 @@ _GROUPS: List[DishOptionGroup] = []
 _OPTIONS: List[DishOption] = []
 
 
-@router.get("/categories")
-async def get_categories(restaurant_id: int, db: Session = Depends(get_db)) -> List[Category]:
-    cats = db.query(OCategory).filter(OCategory.restaurant_id == restaurant_id).order_by(OCategory.sort.asc()).all()
-    return [Category(id=c.id, restaurant_id=c.restaurant_id, name=c.name, sort=c.sort) for c in cats]
-
-
-@router.get("/dishes")
-async def get_dishes(restaurant_id: int, db: Session = Depends(get_db)) -> List[Dish]:
-    dishes = db.query(ODish).filter(ODish.restaurant_id == restaurant_id).all()
-    return [Dish(
-        id=d.id, restaurant_id=d.restaurant_id, category_id=d.category_id, name=d.name,
-        description=d.description, price=d.price, image=d.image, is_available=d.is_available, has_options=d.has_options
-    ) for d in dishes]
-
-
 @router.get("/restaurants/{restaurant_id}/menu")
 async def get_menu(restaurant_id: int, db: Session = Depends(get_db)) -> Dict[str, List[dict]]:
     cats = db.query(OCategory).filter(OCategory.restaurant_id == restaurant_id).order_by(OCategory.sort.asc()).all()
@@ -90,6 +75,20 @@ async def get_menu(restaurant_id: int, db: Session = Depends(get_db)) -> Dict[st
         ],
     }
 
+@router.get("/categories")
+async def get_categories(restaurant_id: int, db: Session = Depends(get_db)) -> List[Category]:
+    """Получить категории для конкретного ресторана"""
+    cats = db.query(OCategory).filter(OCategory.restaurant_id == restaurant_id).order_by(OCategory.sort.asc()).all()
+    return [
+        Category(
+            id=c.id,
+            restaurant_id=c.restaurant_id,
+            name=c.name,
+            sort=c.sort
+        )
+        for c in cats
+    ]
+
 
 @router.get("/dishes/{dish_id}")
 async def get_dish(dish_id: int, db: Session = Depends(get_db)) -> Dish:
@@ -103,16 +102,27 @@ async def get_dish(dish_id: int, db: Session = Depends(get_db)) -> Dish:
 
 
 @router.get("/dishes")
-async def get_dishes_bulk(ids: str, db: Session = Depends(get_db)) -> List[Dish]:
-    try:
-        id_list = [int(x) for x in ids.split(",") if x.strip()]
-    except Exception as exc:
-        raise RuntimeError("Bad ids") from exc
-    rows = db.query(ODish).filter(ODish.id.in_(id_list)).all()
-    return [Dish(
-        id=d.id, restaurant_id=d.restaurant_id, category_id=d.category_id, name=d.name,
-        description=d.description, price=d.price, image=d.image, is_available=d.is_available, has_options=d.has_options
-    ) for d in rows]
+async def get_dishes_bulk(ids: str = None, restaurant_id: int = None, db: Session = Depends(get_db)) -> List[Dish]:
+    if restaurant_id:
+        # Получаем блюда по ресторану
+        rows = db.query(ODish).filter(ODish.restaurant_id == restaurant_id).all()
+        return [Dish(
+            id=d.id, restaurant_id=d.restaurant_id, category_id=d.category_id, name=d.name,
+            description=d.description, price=d.price, image=d.image, is_available=d.is_available, has_options=d.has_options
+        ) for d in rows]
+    elif ids:
+        # Получаем блюда по списку ID (для совместимости)
+        try:
+            id_list = [int(x) for x in ids.split(",") if x.strip()]
+        except Exception as exc:
+            raise RuntimeError("Bad ids") from exc
+        rows = db.query(ODish).filter(ODish.id.in_(id_list)).all()
+        return [Dish(
+            id=d.id, restaurant_id=d.restaurant_id, category_id=d.category_id, name=d.name,
+            description=d.description, price=d.price, image=d.image, is_available=d.is_available, has_options=d.has_options
+        ) for d in rows]
+    else:
+        raise HTTPException(status_code=400, detail="Either ids or restaurant_id must be provided")
 
 
 @router.get("/dishes/{dish_id}/options")

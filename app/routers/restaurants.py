@@ -118,7 +118,7 @@ async def get_restaurants_by_ids(ids: str = Query(..., description="comma-separa
 
 
 @router.get("/{restaurant_id}")
-async def get_restaurant(restaurant_id: int, db: Session = Depends(get_db)) -> Restaurant:
+async def get_restaurant(restaurant_id: int, uid: Optional[int] = None, db: Session = Depends(get_db)) -> Restaurant:
     r = db.query(ORestaurant).filter(ORestaurant.id == restaurant_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Restaurant not found")
