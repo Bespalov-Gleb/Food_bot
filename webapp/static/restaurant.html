@@ -4,8 +4,1882 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ресторан</title>
-    <link rel="stylesheet" href="/static/styles.v23.css?v=40" />
+    <link rel="stylesheet" href="/static/styles.v23.css?v=41" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* ПРИНУДИТЕЛЬНЫЕ СТИЛИ ДЛЯ СЕТКИ БЛЮД */
+        .dishes-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 12px !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+        }
+        
+        .dish-card {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 12px !important;
+            background: #fff !important;
+            overflow: hidden !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .dish-image {
+            width: 100% !important;
+            height: 120px !important;
+            object-fit: cover !important;
+            display: block !important;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        
+        .dish-content {
+            padding: 12px !important;
+        }
+        
+        .dish-name {
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            margin: 0 0 4px 0 !important;
+            color: #1f2937 !important;
+            line-height: 1.3 !important;
+        }
+        
+        .dish-description {
+            font-size: 12px !important;
+            color: #6b7280 !important;
+            margin: 0 0 8px 0 !important;
+            line-height: 1.4 !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+        }
+        
+        .dish-price {
+            font-weight: 700 !important;
+            font-size: 16px !important;
+            color: #dc2626 !important;
+            margin: 0 0 12px 0 !important;
+        }
+        
+        .dish-controls {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        
+        .dish-controls .controls {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+        }
+        
+        .dish-controls .qty {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+        }
+        
+        .dish-controls .qty button {
+            width: 32px !important;
+            height: 32px !important;
+            padding: 0 !important;
+            font-size: 16px !important;
+            border-radius: 50% !important;
+            border: 1px solid #dc2626 !important;
+            background: #fff !important;
+            color: #dc2626 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .dish-controls .qty button:hover {
+            background: #dc2626 !important;
+            color: #fff !important;
+        }
+        
+        .dish-controls .qty .quantity {
+            font-weight: 600 !important;
+            font-size: 16px !important;
+            color: #1f2937 !important;
+            min-width: 20px !important;
+            text-align: center !important;
+        }
+        
+        .add-btn {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 50% !important;
+            border: 1px solid #dc2626 !important;
+            background: #dc2626 !important;
+            color: #fff !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            font-size: 18px !important;
+            font-weight: 600 !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .back-button {
+            position: fixed !important;
+            top: 20px !important;
+            left: 20px !important;
+            z-index: 1000 !important;
+            background: #dc2626 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 50% !important;
+            width: 40px !important;
+            height: 40px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 18px !important;
+            cursor: pointer !important;
+            box-shadow: 0 2px 8px rgba(220,38,38,0.3) !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        /* Нижняя панель заказа */
+        .checkout-bar {
+            position: fixed !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            background: #dc2626 !important;
+            color: #fff !important;
+            padding: 16px 20px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+            z-index: 1000 !important;
+        }
+        
+        .checkout-info {
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+        }
+        
+        .cart-count {
+            background: #fff !important;
+            color: #dc2626 !important;
+            border-radius: 50% !important;
+            width: 24px !important;
+            height: 24px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-weight: 700 !important;
+            font-size: 12px !important;
+        }
+        
+        .checkout-total {
+            font-weight: 700 !important;
+            font-size: 18px !important;
+            line-height: 1.2 !important;
+        }
+        
+        .checkout-note {
+            font-size: 12px !important;
+            color: #fecaca !important;
+            margin-top: 2px !important;
+            line-height: 1.2 !important;
+        }
+        
+        .checkout-button {
+            background: #fff !important;
+            color: #dc2626 !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 12px 24px !important;
+            font-weight: 700 !important;
+            font-size: 16px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        /* Категории */
+        .cat-row {
+            display: flex !important;
+            overflow-x: auto !important;
+            gap: 12px !important;
+            padding: 16px 0 !important;
+            margin-bottom: 16px !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        
+        .cat-row::-webkit-scrollbar {
+            display: none !important;
+        }
+        
+        .cat-row button {
+            padding: 10px 20px !important;
+            border-radius: 20px !important;
+            border: 1px solid #e5e5e5 !important;
+            background: #fff !important;
+            color: #333 !important;
+            font-weight: 500 !important;
+            font-size: 14px !important;
+            white-space: nowrap !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+        }
+        
+        .cat-row button.active {
+            background: #dc2626 !important;
+            border-color: #dc2626 !important;
+            color: #fff !important;
+            box-shadow: 0 4px 12px rgba(220,38,38,0.3) !important;
+        }
+        
+        /* Заголовки категорий */
+        .category-section {
+            margin-bottom: 24px !important;
+        }
+        
+        .category-title {
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            color: #1f2937 !important;
+            margin: 0 0 16px 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            line-height: 1.2 !important;
+        }
+        
+        .category-title::before {
+            content: '' !important;
+            width: 4px !important;
+            height: 20px !important;
+            background: #dc2626 !important;
+            border-radius: 2px !important;
+        }
+        
+        /* Заголовок ресторана */
+        .restaurant-header {
+            background: #fff !important;
+            border-radius: 16px !important;
+            padding: 20px !important;
+            margin-bottom: 16px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        }
+        
+        .restaurant-name {
+            font-size: 24px !important;
+            font-weight: 700 !important;
+            color: #1f2937 !important;
+            margin: 0 0 8px 0 !important;
+            line-height: 1.2 !important;
+        }
+        
+        .restaurant-meta {
+            display: flex !important;
+            align-items: center !important;
+            gap: 16px !important;
+            color: #6b7280 !important;
+            font-size: 14px !important;
+            margin-bottom: 8px !important;
+        }
+        
+        .restaurant-address {
+            color: #374151 !important;
+            font-size: 14px !important;
+        }
+        
+        /* Модальное окно */
+        .overlay {
+            position: fixed !important;
+            inset: 0 !important;
+            background: rgba(0,0,0,0.4) !important;
+            display: none !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 1000 !important;
+        }
+        
+        .modal {
+            width: calc(100% - 32px) !important;
+            max-width: 420px !important;
+            background: #fff !important;
+            border-radius: 14px !important;
+            padding: 14px !important;
+            z-index: 1001 !important;
+        }
+        
+        .modal h3 {
+            margin: 0 0 8px !important;
+            line-height: 1.2 !important;
+        }
+        
+        .modal .row {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 8px 10px !important;
+            border: 1px solid #eee !important;
+            border-radius: 10px !important;
+            background: #fff !important;
+            margin: 8px 0 !important;
+        }
+        
+        .modal .trash {
+            background: #fff !important;
+            border: 1px solid #eee !important;
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 16px !important;
+            cursor: pointer !important;
+        }
+        
+        .modal .muted {
+            color: #666 !important;
+            font-size: 13px !important;
+            margin-bottom: 12px !important;
+            line-height: 1.4 !important;
+        }
+        
+        .primary {
+            background: #dc2626 !important;
+            color: #fff !important;
+            border: none !important;
+            padding: 10px 16px !important;
+            border-radius: 12px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+        }
+        
+        /* Базовые стили */
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
+            margin: 0 !important;
+            background: #f8f9fa !important;
+        }
+        
+        .container {
+            padding: 16px !important;
+            box-sizing: border-box !important;
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            overflow-x: hidden !important;
+        }
+        
+        /* Hover эффекты */
+        .dish-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            transform: translateY(-2px) !important;
+        }
+        
+        .add-btn:hover {
+            background: #b91c1c !important;
+            border-color: #b91c1c !important;
+            transform: scale(1.1) !important;
+        }
+        
+        .back-button:hover {
+            background: #b91c1c !important;
+            transform: scale(1.1) !important;
+        }
+        
+        .checkout-button:hover {
+            background: #f3f4f6 !important;
+            transform: translateY(-1px) !important;
+        }
+        
+        .cat-row button:hover {
+            border-color: #d0d0d0 !important;
+            background: #f8f8f8 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+        }
+        
+        /* Активные состояния */
+        .dish-controls .qty button:active {
+            transform: scale(0.95) !important;
+        }
+        
+        .add-btn:active {
+            transform: scale(0.95) !important;
+        }
+        
+        .back-button:active {
+            transform: scale(0.95) !important;
+        }
+        
+        .checkout-button:active {
+            transform: translateY(0) !important;
+        }
+        
+        .cat-row button:active {
+            transform: translateY(0) !important;
+        }
+        
+        /* Скрытие скроллбара */
+        .cat-row::-webkit-scrollbar {
+            display: none !important;
+        }
+        
+        .cat-row {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        
+        /* Will-change для производительности */
+        .dish-card {
+            will-change: transform, box-shadow !important;
+        }
+        
+        .dish-image {
+            will-change: transform !important;
+        }
+        
+        .add-btn {
+            will-change: transform !important;
+        }
+        
+        .back-button {
+            will-change: transform !important;
+        }
+        
+        .checkout-button {
+            will-change: transform !important;
+        }
+        
+        .cat-row button {
+            will-change: transform, box-shadow !important;
+        }
+        
+        /* User-select */
+        .dish-name {
+            user-select: none !important;
+        }
+        
+        .dish-description {
+            user-select: none !important;
+        }
+        
+        .dish-price {
+            user-select: none !important;
+        }
+        
+        .restaurant-name {
+            user-select: none !important;
+        }
+        
+        .restaurant-address {
+            user-select: none !important;
+        }
+        
+        .category-title {
+            user-select: none !important;
+        }
+        
+        .checkout-total {
+            user-select: none !important;
+        }
+        
+        .checkout-note {
+            user-select: none !important;
+        }
+        
+        .cart-count {
+            user-select: none !important;
+        }
+        
+        /* Pointer-events */
+        .dish-image {
+            pointer-events: none !important;
+        }
+        
+        .dish-name {
+            pointer-events: none !important;
+        }
+        
+        .dish-description {
+            pointer-events: none !important;
+        }
+        
+        .dish-price {
+            pointer-events: none !important;
+        }
+        
+        .restaurant-name {
+            pointer-events: none !important;
+        }
+        
+        .restaurant-address {
+            pointer-events: none !important;
+        }
+        
+        .category-title {
+            pointer-events: none !important;
+        }
+        
+        .checkout-total {
+            pointer-events: none !important;
+        }
+        
+        .checkout-note {
+            pointer-events: none !important;
+        }
+        
+        .cart-count {
+            pointer-events: none !important;
+        }
+        
+        /* Изображения */
+        img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        
+        .dish-image {
+            width: 100% !important;
+            height: 120px !important;
+            object-fit: cover !important;
+            display: block !important;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        
+        /* Текст */
+        h1, h2, h3, h4, h5, h6 {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        p {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        button {
+            font-family: inherit !important;
+            font-size: inherit !important;
+            line-height: inherit !important;
+        }
+        
+        /* Фокус */
+        button:focus {
+            outline: 2px solid #dc2626 !important;
+            outline-offset: 2px !important;
+        }
+        
+        .add-btn:focus {
+            outline: 2px solid #fff !important;
+            outline-offset: 2px !important;
+        }
+        
+        .checkout-button:focus {
+            outline: 2px solid #dc2626 !important;
+            outline-offset: 2px !important;
+        }
+        
+        /* Text-decoration */
+        .dish-name {
+            text-decoration: none !important;
+        }
+        
+        .dish-description {
+            text-decoration: none !important;
+        }
+        
+        .dish-price {
+            text-decoration: none !important;
+        }
+        
+        .restaurant-name {
+            text-decoration: none !important;
+        }
+        
+        .restaurant-address {
+            text-decoration: none !important;
+        }
+        
+        .category-title {
+            text-decoration: none !important;
+        }
+        
+        .checkout-total {
+            text-decoration: none !important;
+        }
+        
+        .checkout-note {
+            text-decoration: none !important;
+        }
+        
+        .cart-count {
+            text-decoration: none !important;
+        }
+        
+        /* List-style */
+        ul, ol {
+            list-style: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        li {
+            list-style: none !important;
+        }
+        
+        /* Table */
+        table {
+            border-collapse: collapse !important;
+            border-spacing: 0 !important;
+        }
+        
+        td, th {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        /* Form */
+        input, textarea, select {
+            font-family: inherit !important;
+            font-size: inherit !important;
+            line-height: inherit !important;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none !important;
+        }
+        
+        /* Links */
+        a {
+            color: inherit !important;
+            text-decoration: none !important;
+        }
+        
+        a:hover {
+            text-decoration: none !important;
+        }
+        
+        a:focus {
+            outline: none !important;
+        }
+        
+        /* Images */
+        img {
+            max-width: 100% !important;
+            height: auto !important;
+            vertical-align: middle !important;
+            border: none !important;
+        }
+        
+        .dish-image {
+            vertical-align: top !important;
+        }
+        
+        /* HR */
+        hr {
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* Fieldset и Legend */
+        fieldset {
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        legend {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        /* Details и Summary */
+        details {
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        summary {
+            list-style: none !important;
+            cursor: pointer !important;
+        }
+        
+        summary::-webkit-details-marker {
+            display: none !important;
+        }
+        
+        /* Progress и Meter */
+        progress, meter {
+            border: none !important;
+            background: none !important;
+        }
+        
+        /* Select */
+        select {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+        }
+        
+        /* Input */
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="number"],
+        input[type="tel"],
+        input[type="url"],
+        input[type="search"],
+        input[type="date"],
+        input[type="time"],
+        input[type="datetime-local"],
+        input[type="month"],
+        input[type="week"] {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            border: none !important;
+            background: none !important;
+            outline: none !important;
+        }
+        
+        /* Button */
+        input[type="button"],
+        input[type="submit"],
+        input[type="reset"] {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+        }
+        
+        /* Textarea */
+        textarea {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            border: none !important;
+            background: none !important;
+            outline: none !important;
+            resize: none !important;
+        }
+        
+        /* Label */
+        label {
+            cursor: pointer !important;
+        }
+        
+        /* Fieldset */
+        fieldset {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+        }
+        
+        /* Анимации */
+        .dish-card,
+        .add-btn,
+        .back-button,
+        .checkout-button,
+        .cat-row button {
+            transition: all 0.2s ease !important;
+        }
+        
+        .dish-image {
+            transition: transform 0.3s ease !important;
+        }
+        
+        .dish-card:hover .dish-image {
+            transform: scale(1.02) !important;
+        }
+        
+        /* Transition */
+        .dish-card {
+            transition: all 0.2s ease !important;
+        }
+        
+        .add-btn {
+            transition: all 0.2s ease !important;
+        }
+        
+        .back-button {
+            transition: all 0.2s ease !important;
+        }
+        
+        .checkout-button {
+            transition: all 0.2s ease !important;
+        }
+        
+        .cat-row button {
+            transition: all 0.2s ease !important;
+        }
+        
+        .dish-image {
+            transition: transform 0.3s ease !important;
+        }
+        
+        .dish-controls .qty button {
+            transition: all 0.2s ease !important;
+        }
+        
+        /* Cursor */
+        .dish-controls .qty button {
+            cursor: pointer !important;
+        }
+        
+        .add-btn {
+            cursor: pointer !important;
+        }
+        
+        .back-button {
+            cursor: pointer !important;
+        }
+        
+        .checkout-button {
+            cursor: pointer !important;
+        }
+        
+        .cat-row button {
+            cursor: pointer !important;
+        }
+        
+        .modal .trash {
+            cursor: pointer !important;
+        }
+        
+        .primary {
+            cursor: pointer !important;
+        }
+        
+        /* Z-index */
+        .back-button {
+            z-index: 1000 !important;
+        }
+        
+        .checkout-bar {
+            z-index: 1000 !important;
+        }
+        
+        .overlay {
+            z-index: 1000 !important;
+        }
+        
+        .modal {
+            z-index: 1001 !important;
+        }
+        
+        /* Box-sizing */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box !important;
+        }
+        
+        /* Убираем дублирование */
+        .dish-image {
+            border-radius: 8px 8px 0 0 !important;
+        }
+        
+        /* Overflow */
+        .dish-card {
+            overflow: hidden !important;
+        }
+        
+        .container {
+            overflow-x: hidden !important;
+        }
+        
+        /* Убираем горизонтальный скролл */
+        body {
+            overflow-x: hidden !important;
+        }
+        
+        /* Object-fit */
+        .dish-image {
+            object-fit: cover !important;
+            object-position: center !important;
+        }
+        
+        /* Content */
+        .category-title::before {
+            content: '' !important;
+        }
+        
+        /* Webkit-box для описания */
+        .dish-description {
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+        }
+        
+        /* Scrollbar */
+        .cat-row::-webkit-scrollbar {
+            display: none !important;
+        }
+        
+        .cat-row {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        
+        /* Position */
+        .back-button {
+            position: fixed !important;
+            top: 20px !important;
+            left: 20px !important;
+        }
+        
+        .checkout-bar {
+            position: fixed !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+        }
+        
+        .overlay {
+            position: fixed !important;
+            inset: 0 !important;
+        }
+        
+        /* Display */
+        .dishes-grid {
+            display: grid !important;
+        }
+        
+        .dish-controls {
+            display: flex !important;
+        }
+        
+        .dish-controls .controls {
+            display: flex !important;
+        }
+        
+        .dish-controls .qty {
+            display: inline-flex !important;
+        }
+        
+        .add-btn {
+            display: flex !important;
+        }
+        
+        .back-button {
+            display: flex !important;
+        }
+        
+        .checkout-bar {
+            display: flex !important;
+        }
+        
+        .checkout-info {
+            display: flex !important;
+        }
+        
+        .cart-count {
+            display: flex !important;
+        }
+        
+        .cat-row {
+            display: flex !important;
+        }
+        
+        .category-title {
+            display: flex !important;
+        }
+        
+        .restaurant-meta {
+            display: flex !important;
+        }
+        
+        /* Flexbox */
+        .dish-controls {
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        
+        .dish-controls .controls {
+            align-items: center !important;
+        }
+        
+        .dish-controls .qty {
+            align-items: center !important;
+        }
+        
+        .add-btn {
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        .back-button {
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        .checkout-bar {
+            align-items: center !important;
+            justify-content: space-between !important;
+        }
+        
+        .checkout-info {
+            align-items: center !important;
+        }
+        
+        .cart-count {
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        .cat-row {
+            align-items: center !important;
+        }
+        
+        .category-title {
+            align-items: center !important;
+        }
+        
+        .restaurant-meta {
+            align-items: center !important;
+        }
+        
+        /* Grid */
+        .dishes-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 12px !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        
+        /* Адаптивность для grid */
+        @media (max-width: 480px) {
+            .dishes-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .dishes-grid {
+                gap: 8px !important;
+            }
+        }
+        
+        /* Box-shadow */
+        .dish-card {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+        }
+        
+        .dish-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        }
+        
+        .restaurant-header {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        }
+        
+        .back-button {
+            box-shadow: 0 2px 8px rgba(220,38,38,0.3) !important;
+        }
+        
+        .checkout-bar {
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+        }
+        
+        .cat-row button {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+        }
+        
+        .cat-row button:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+        }
+        
+        .cat-row button.active {
+            box-shadow: 0 4px 12px rgba(220,38,38,0.3) !important;
+        }
+        
+        /* Transform */
+        .dish-card:hover {
+            transform: translateY(-2px) !important;
+        }
+        
+        .add-btn:hover {
+            transform: scale(1.1) !important;
+        }
+        
+        .back-button:hover {
+            transform: scale(1.1) !important;
+        }
+        
+        .checkout-button:hover {
+            transform: translateY(-1px) !important;
+        }
+        
+        .cat-row button:hover {
+            transform: translateY(-1px) !important;
+        }
+        
+        .dish-controls .qty button:active {
+            transform: scale(0.95) !important;
+        }
+        
+        .add-btn:active {
+            transform: scale(0.95) !important;
+        }
+        
+        .back-button:active {
+            transform: scale(0.95) !important;
+        }
+        
+        .checkout-button:active {
+            transform: translateY(0) !important;
+        }
+        
+        .cat-row button:active {
+            transform: translateY(0) !important;
+        }
+        
+        .dish-image {
+            transform: none !important;
+        }
+        
+        .dish-card:hover .dish-image {
+            transform: scale(1.02) !important;
+        }
+        
+        /* Размеры */
+        .dish-image {
+            height: 120px !important;
+        }
+        
+        .add-btn {
+            width: 32px !important;
+            height: 32px !important;
+        }
+        
+        .back-button {
+            width: 40px !important;
+            height: 40px !important;
+        }
+        
+        .dish-controls .qty button {
+            width: 32px !important;
+            height: 32px !important;
+        }
+        
+        .cart-count {
+            width: 24px !important;
+            height: 24px !important;
+        }
+        
+        /* Адаптивность для размеров */
+        @media (max-width: 400px) {
+            .dish-image {
+                height: 100px !important;
+            }
+            
+            .dish-controls .qty button,
+            .add-btn {
+                width: 28px !important;
+                height: 28px !important;
+                font-size: 14px !important;
+            }
+        }
+        
+        /* Цвета */
+        .dish-name {
+            color: #1f2937 !important;
+        }
+        
+        .dish-description {
+            color: #6b7280 !important;
+        }
+        
+        .dish-price {
+            color: #dc2626 !important;
+        }
+        
+        .restaurant-name {
+            color: #1f2937 !important;
+        }
+        
+        .restaurant-meta {
+            color: #6b7280 !important;
+        }
+        
+        .restaurant-address {
+            color: #374151 !important;
+        }
+        
+        .category-title {
+            color: #1f2937 !important;
+        }
+        
+        .cat-row button {
+            color: #333 !important;
+        }
+        
+        .cat-row button.active {
+            color: #fff !important;
+        }
+        
+        .dish-controls .qty button {
+            color: #dc2626 !important;
+        }
+        
+        .dish-controls .qty .quantity {
+            color: #1f2937 !important;
+        }
+        
+        .add-btn {
+            color: #fff !important;
+        }
+        
+        .back-button {
+            color: white !important;
+        }
+        
+        .checkout-bar {
+            color: #fff !important;
+        }
+        
+        .checkout-button {
+            color: #dc2626 !important;
+        }
+        
+        .cart-count {
+            color: #dc2626 !important;
+        }
+        
+        .checkout-note {
+            color: #fecaca !important;
+        }
+        
+        /* Фоны */
+        body {
+            background: #f8f9fa !important;
+        }
+        
+        .dish-card {
+            background: #fff !important;
+        }
+        
+        .restaurant-header {
+            background: #fff !important;
+        }
+        
+        .cat-row button {
+            background: #fff !important;
+        }
+        
+        .cat-row button.active {
+            background: #dc2626 !important;
+        }
+        
+        .dish-controls .qty button {
+            background: #fff !important;
+        }
+        
+        .add-btn {
+            background: #dc2626 !important;
+        }
+        
+        .back-button {
+            background: #dc2626 !important;
+        }
+        
+        .checkout-bar {
+            background: #dc2626 !important;
+        }
+        
+        .checkout-button {
+            background: #fff !important;
+        }
+        
+        .cart-count {
+            background: #fff !important;
+        }
+        
+        .modal {
+            background: #fff !important;
+        }
+        
+        .modal .row {
+            background: #fff !important;
+        }
+        
+        .modal .trash {
+            background: #fff !important;
+        }
+        
+        .primary {
+            background: #dc2626 !important;
+        }
+        
+        /* Границы */
+        .dish-card {
+            border: 1px solid #e5e7eb !important;
+        }
+        
+        .cat-row button {
+            border: 1px solid #e5e5e5 !important;
+        }
+        
+        .cat-row button.active {
+            border-color: #dc2626 !important;
+        }
+        
+        .dish-controls .qty button {
+            border: 1px solid #dc2626 !important;
+        }
+        
+        .add-btn {
+            border: 1px solid #dc2626 !important;
+        }
+        
+        .back-button {
+            border: none !important;
+        }
+        
+        .checkout-button {
+            border: none !important;
+        }
+        
+        .modal .row {
+            border: 1px solid #eee !important;
+        }
+        
+        .modal .trash {
+            border: 1px solid #eee !important;
+        }
+        
+        .primary {
+            border: none !important;
+        }
+        
+        /* Border-radius */
+        .dish-card {
+            border-radius: 12px !important;
+        }
+        
+        .dish-image {
+            border-radius: 8px 8px 0 0 !important;
+        }
+        
+        .cat-row button {
+            border-radius: 20px !important;
+        }
+        
+        .dish-controls .qty button {
+            border-radius: 50% !important;
+        }
+        
+        .add-btn {
+            border-radius: 50% !important;
+        }
+        
+        .back-button {
+            border-radius: 50% !important;
+        }
+        
+        .checkout-button {
+            border-radius: 12px !important;
+        }
+        
+        .cart-count {
+            border-radius: 50% !important;
+        }
+        
+        .restaurant-header {
+            border-radius: 16px !important;
+        }
+        
+        .modal {
+            border-radius: 14px !important;
+        }
+        
+        .modal .row {
+            border-radius: 10px !important;
+        }
+        
+        .modal .trash {
+            border-radius: 16px !important;
+        }
+        
+        .primary {
+            border-radius: 12px !important;
+        }
+        
+        .category-title::before {
+            border-radius: 2px !important;
+        }
+        
+        /* Padding и Margin */
+        .container {
+            padding: 16px !important;
+        }
+        
+        .restaurant-header {
+            padding: 20px !important;
+            margin-bottom: 16px !important;
+        }
+        
+        .restaurant-name {
+            margin: 0 0 8px 0 !important;
+        }
+        
+        .restaurant-meta {
+            margin-bottom: 8px !important;
+        }
+        
+        .cat-row {
+            padding: 16px 0 !important;
+            margin-bottom: 16px !important;
+        }
+        
+        .category-section {
+            margin-bottom: 24px !important;
+        }
+        
+        .category-title {
+            margin: 0 0 16px 0 !important;
+        }
+        
+        .dish-content {
+            padding: 12px !important;
+        }
+        
+        .dish-name {
+            margin: 0 0 4px 0 !important;
+        }
+        
+        .dish-description {
+            margin: 0 0 8px 0 !important;
+        }
+        
+        .dish-price {
+            margin: 0 0 12px 0 !important;
+        }
+        
+        .dish-controls .controls {
+            gap: 8px !important;
+        }
+        
+        .dish-controls .qty {
+            gap: 8px !important;
+        }
+        
+        .cat-row button {
+            padding: 10px 20px !important;
+        }
+        
+        .dish-controls .qty button {
+            padding: 0 !important;
+        }
+        
+        .add-btn {
+            padding: 0 !important;
+        }
+        
+        .back-button {
+            padding: 0 !important;
+        }
+        
+        .checkout-bar {
+            padding: 16px 20px !important;
+        }
+        
+        .checkout-button {
+            padding: 12px 24px !important;
+        }
+        
+        .checkout-info {
+            gap: 12px !important;
+        }
+        
+        .cart-count {
+            padding: 0 !important;
+        }
+        
+        .modal {
+            padding: 14px !important;
+        }
+        
+        .modal .row {
+            padding: 8px 10px !important;
+            margin: 8px 0 !important;
+        }
+        
+        .modal .muted {
+            margin-bottom: 12px !important;
+        }
+        
+        .primary {
+            padding: 10px 16px !important;
+        }
+        
+        /* Font-size и Font-weight */
+        .restaurant-name {
+            font-size: 24px !important;
+            font-weight: 700 !important;
+        }
+        
+        .restaurant-meta {
+            font-size: 14px !important;
+        }
+        
+        .restaurant-address {
+            font-size: 14px !important;
+        }
+        
+        .cat-row button {
+            font-weight: 500 !important;
+            font-size: 14px !important;
+        }
+        
+        .category-title {
+            font-size: 20px !important;
+            font-weight: 700 !important;
+        }
+        
+        .dish-name {
+            font-weight: 600 !important;
+            font-size: 14px !important;
+        }
+        
+        .dish-description {
+            font-size: 12px !important;
+        }
+        
+        .dish-price {
+            font-weight: 700 !important;
+            font-size: 16px !important;
+        }
+        
+        .dish-controls .qty button {
+            font-size: 16px !important;
+        }
+        
+        .dish-controls .qty .quantity {
+            font-weight: 600 !important;
+            font-size: 16px !important;
+        }
+        
+        .add-btn {
+            font-size: 18px !important;
+            font-weight: 600 !important;
+        }
+        
+        .back-button {
+            font-size: 18px !important;
+        }
+        
+        .checkout-total {
+            font-weight: 700 !important;
+            font-size: 18px !important;
+        }
+        
+        .checkout-note {
+            font-size: 12px !important;
+        }
+        
+        .checkout-button {
+            font-weight: 700 !important;
+            font-size: 16px !important;
+        }
+        
+        .cart-count {
+            font-weight: 700 !important;
+            font-size: 12px !important;
+        }
+        
+        .modal h3 {
+            font-size: 18px !important;
+            font-weight: 600 !important;
+        }
+        
+        .modal .muted {
+            font-size: 13px !important;
+        }
+        
+        .primary {
+            font-weight: 600 !important;
+        }
+        
+        /* Line-height */
+        .dish-name {
+            line-height: 1.3 !important;
+        }
+        
+        .dish-description {
+            line-height: 1.4 !important;
+        }
+        
+        .restaurant-name {
+            line-height: 1.2 !important;
+        }
+        
+        .category-title {
+            line-height: 1.2 !important;
+        }
+        
+        .checkout-total {
+            line-height: 1.2 !important;
+        }
+        
+        .checkout-note {
+            line-height: 1.2 !important;
+        }
+        
+        .modal h3 {
+            line-height: 1.2 !important;
+        }
+        
+        .modal .muted {
+            line-height: 1.4 !important;
+        }
+        
+        /* Text-align */
+        .dish-controls .qty .quantity {
+            text-align: center !important;
+        }
+        
+        .cart-count {
+            text-align: center !important;
+        }
+        
+        .checkout-note {
+            text-align: left !important;
+        }
+        
+        .modal .row {
+            text-align: left !important;
+        }
+        
+        .modal .muted {
+            text-align: left !important;
+        }
+        
+        .primary {
+            text-align: center !important;
+        }
+        
+        /* White-space */
+        .cat-row button {
+            white-space: nowrap !important;
+        }
+        
+        .dish-name {
+            white-space: normal !important;
+        }
+        
+        .dish-description {
+            white-space: normal !important;
+        }
+        
+        .restaurant-name {
+            white-space: normal !important;
+        }
+        
+        .restaurant-address {
+            white-space: normal !important;
+        }
+        
+        .category-title {
+            white-space: normal !important;
+        }
+        
+        .checkout-total {
+            white-space: nowrap !important;
+        }
+        
+        .checkout-note {
+            white-space: normal !important;
+        }
+        
+        /* Min-width */
+        .dish-controls .qty .quantity {
+            min-width: 20px !important;
+        }
+        
+        .cat-row button {
+            min-width: auto !important;
+        }
+        
+        .checkout-button {
+            min-width: auto !important;
+        }
+        
+        .primary {
+            min-width: auto !important;
+        }
+        
+        .modal {
+            min-width: auto !important;
+        }
+        
+        .container {
+            min-width: auto !important;
+        }
+        
+        /* Max-width */
+        .container {
+            max-width: 1200px !important;
+        }
+        
+        .modal {
+            max-width: 420px !important;
+        }
+        
+        .dish-card {
+            max-width: none !important;
+        }
+        
+        .cat-row button {
+            max-width: none !important;
+        }
+        
+        .checkout-button {
+            max-width: none !important;
+        }
+        
+        .primary {
+            max-width: none !important;
+        }
+        
+        .dish-image {
+            max-width: 100% !important;
+        }
+        
+        /* Height */
+        .dish-image {
+            height: 120px !important;
+        }
+        
+        .add-btn {
+            height: 32px !important;
+        }
+        
+        .back-button {
+            height: 40px !important;
+        }
+        
+        .dish-controls .qty button {
+            height: 32px !important;
+        }
+        
+        .cart-count {
+            height: 24px !important;
+        }
+        
+        .category-title::before {
+            height: 20px !important;
+        }
+        
+        /* Адаптивность для height */
+        @media (max-width: 400px) {
+            .dish-image {
+                height: 100px !important;
+            }
+            
+            .dish-controls .qty button,
+            .add-btn {
+                height: 28px !important;
+            }
+        }
+        
+        /* Width */
+        .dish-image {
+            width: 100% !important;
+        }
+        
+        .add-btn {
+            width: 32px !important;
+        }
+        
+        .back-button {
+            width: 40px !important;
+        }
+        
+        .dish-controls .qty button {
+            width: 32px !important;
+        }
+        
+        .cart-count {
+            width: 24px !important;
+        }
+        
+        .category-title::before {
+            width: 4px !important;
+        }
+        
+        .dishes-grid {
+            width: 100% !important;
+        }
+        
+        .dish-card {
+            width: 100% !important;
+        }
+        
+        /* Адаптивность для width */
+        @media (max-width: 400px) {
+            .dish-controls .qty button,
+            .add-btn {
+                width: 28px !important;
+            }
+        }
+        
+        /* Gap */
+        .dishes-grid {
+            gap: 12px !important;
+        }
+        
+        .dish-controls .controls {
+            gap: 8px !important;
+        }
+        
+        .dish-controls .qty {
+            gap: 8px !important;
+        }
+        
+        .cat-row {
+            gap: 12px !important;
+        }
+        
+        .restaurant-meta {
+            gap: 16px !important;
+        }
+        
+        .checkout-info {
+            gap: 12px !important;
+        }
+        
+        .category-title {
+            gap: 8px !important;
+        }
+        
+        /* Адаптивность для gap */
+        @media (max-width: 768px) {
+            .dishes-grid {
+                gap: 8px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .dishes-grid {
+                gap: 12px !important;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .dishes-grid {
+                gap: 8px !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Кнопка "Назад" -->
