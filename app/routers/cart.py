@@ -17,7 +17,7 @@ class CartItem(BaseModel):
     restaurant_id: int
     dish_id: int
     qty: int
-    chosen_options: Optional[List[int]] = None
+    chosen_options: Optional[List[int]] = []
 
 
 class Cart(BaseModel):
