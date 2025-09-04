@@ -10,11 +10,30 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d yandex_eda"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  migrate:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/yandex_eda}
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    restart: "no"
 
   api:
     build: .
     depends_on:
-      - db
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/yandex_eda}
       BOT_TOKEN: ${BOT_TOKEN:-}
@@ -30,12 +49,15 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+    restart: unless-stopped
 
   bot:
     build: .
     depends_on:
       api:
+        condition: service_healthy
+      db:
         condition: service_healthy
     environment:
       BOT_TOKEN: ${BOT_TOKEN:-}
@@ -44,14 +66,7 @@ services:
       SUPER_ADMIN_IDS: ${SUPER_ADMIN_IDS:-}
       ADMIN_CODE: ${ADMIN_CODE:-}
     command: ["python", "bot/main.py"]
-
-  migrate:
-    build: .
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/yandex_eda}
-    command: ["python", "-m", "alembic", "upgrade", "head"]
+    restart: unless-stopped
 
 volumes:
   pgdata: {}
