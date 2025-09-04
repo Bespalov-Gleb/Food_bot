@@ -29,6 +29,141 @@ button { padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; backgrou
 .mini-card .cap { padding: 6px 8px; font-size: 13px; font-weight: 600; }
 .mini-card .subtitle { padding: 0 8px 6px; font-size: 11px; color: #666; font-weight: 400; }
 
+/* Dish grid - 2 columns */
+.dishes-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 12px; 
+    padding: 16px; 
+    box-sizing: border-box; 
+}
+
+.dish-card { 
+    border: 1px solid #eee; 
+    border-radius: 12px; 
+    background: #fff; 
+    overflow: hidden; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.dish-image { 
+    width: 100%; 
+    height: 120px; 
+    object-fit: cover; 
+    display: block; 
+}
+
+.dish-content { 
+    padding: 12px; 
+}
+
+.dish-name { 
+    font-weight: 600; 
+    font-size: 14px; 
+    margin: 0 0 4px 0; 
+    color: #333; 
+    line-height: 1.3;
+}
+
+.dish-description { 
+    font-size: 12px; 
+    color: #666; 
+    margin: 0 0 8px 0; 
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.dish-price { 
+    font-weight: 700; 
+    font-size: 16px; 
+    color: #dc2626; 
+    margin: 0 0 12px 0; 
+}
+
+.dish-controls { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+/* Quantity controls in dish cards */
+.dish-controls .controls { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+}
+
+.dish-controls .qty { 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 8px; 
+}
+
+.dish-controls .qty button { 
+    width: 32px; 
+    height: 32px; 
+    padding: 0; 
+    font-size: 16px; 
+    border-radius: 50%; 
+    border: 1px solid #dc2626; 
+    background: #fff; 
+    color: #dc2626; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+}
+
+.dish-controls .qty button:hover { 
+    background: #dc2626; 
+    color: #fff; 
+}
+
+.dish-controls .qty button:active { 
+    transform: scale(0.95); 
+}
+
+.dish-controls .qty .quantity { 
+    font-weight: 600; 
+    font-size: 16px; 
+    color: #333; 
+    min-width: 20px; 
+    text-align: center; 
+}
+
+/* Mobile responsiveness for dish grid */
+@media (max-width: 480px) {
+    .dishes-grid { 
+        grid-template-columns: 1fr; 
+        gap: 16px; 
+        padding: 12px; 
+    }
+    
+    .dish-image { 
+        height: 160px; 
+    }
+    
+    .dish-content { 
+        padding: 16px; 
+    }
+    
+    .dish-name { 
+        font-size: 16px; 
+    }
+    
+    .dish-description { 
+        font-size: 14px; 
+    }
+    
+    .dish-price { 
+        font-size: 18px; 
+    }
+}
+
 /* Carousel variant (one card visible) */
 .carousel { position: relative; overflow: hidden; padding: 0; }
 .carousel-track { display: flex; transition: transform 300ms ease; will-change: transform; }
