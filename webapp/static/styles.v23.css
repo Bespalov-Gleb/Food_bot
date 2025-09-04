@@ -141,29 +141,29 @@ button { padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; backgrou
 /* Mobile responsiveness for dish grid */
 @media (max-width: 480px) {
     .dishes-grid { 
-        grid-template-columns: 1fr; 
-        gap: 16px; 
-        padding: 12px; 
+        grid-template-columns: 1fr !important; 
+        gap: 12px !important; 
+        padding: 10px !important; 
     }
     
     .dish-image { 
-        height: 160px; 
+        height: 120px !important; 
     }
     
     .dish-content { 
-        padding: 16px; 
+        padding: 12px !important; 
     }
     
     .dish-name { 
-        font-size: 16px; 
+        font-size: 14px !important; 
     }
     
     .dish-description { 
-        font-size: 14px; 
+        font-size: 12px !important; 
     }
     
     .dish-price { 
-        font-size: 18px; 
+        font-size: 16px !important; 
     }
 }
 
@@ -323,23 +323,14 @@ img {
   border-bottom: 2px solid var(--border);
 }
 
-.dishes-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 8px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
 /* Специальные стили для изображений блюд */
 .dish-image {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
-  display: block;
-  aspect-ratio: 1;
+  width: 100% !important;
+  height: 80px !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+  display: block !important;
+  aspect-ratio: auto !important;
 }
 
 /* Стили для изображений в карточках */
