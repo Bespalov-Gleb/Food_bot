@@ -62,57 +62,57 @@
     .dishes-grid { 
       display: grid !important; 
       grid-template-columns: 1fr 1fr !important; 
-      gap: 12px !important; 
-      padding: 16px !important; 
+      gap: 8px !important; 
+      padding: 12px !important; 
       box-sizing: border-box !important; 
       width: 100% !important;
     }
     
     .dish-card { 
       border: 1px solid #eee !important; 
-      border-radius: 12px !important; 
+      border-radius: 8px !important; 
       background: #fff !important; 
       overflow: hidden !important; 
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
       width: 100% !important;
       max-width: none !important;
     }
     
     .dish-image { 
       width: 100% !important; 
-      height: 120px !important; 
+      height: 80px !important; 
       object-fit: cover !important; 
       display: block !important; 
     }
     
     .dish-content { 
-      padding: 12px !important; 
+      padding: 8px !important; 
     }
     
     .dish-name { 
       font-weight: 600 !important; 
-      font-size: 14px !important; 
-      margin: 0 0 4px 0 !important; 
+      font-size: 12px !important; 
+      margin: 0 0 2px 0 !important; 
       color: #333 !important; 
-      line-height: 1.3 !important;
+      line-height: 1.2 !important;
     }
     
     .dish-description { 
-      font-size: 12px !important; 
+      font-size: 10px !important; 
       color: #666 !important; 
-      margin: 0 0 8px 0 !important; 
-      line-height: 1.4 !important;
+      margin: 0 0 6px 0 !important; 
+      line-height: 1.3 !important;
       display: -webkit-box !important;
-      -webkit-line-clamp: 2 !important;
+      -webkit-line-clamp: 1 !important;
       -webkit-box-orient: vertical !important;
       overflow: hidden !important;
     }
     
     .dish-price { 
       font-weight: 700 !important; 
-      font-size: 16px !important; 
+      font-size: 14px !important; 
       color: #dc2626 !important; 
-      margin: 0 0 12px 0 !important; 
+      margin: 0 0 8px 0 !important; 
     }
     
     .dish-controls { 
@@ -125,20 +125,20 @@
     .dish-controls .controls { 
       display: flex !important; 
       align-items: center !important; 
-      gap: 8px !important; 
+      gap: 6px !important; 
     }
     
     .dish-controls .qty { 
       display: inline-flex !important; 
       align-items: center !important; 
-      gap: 8px !important; 
+      gap: 6px !important; 
     }
     
     .dish-controls .qty button { 
-      width: 32px !important; 
-      height: 32px !important; 
+      width: 28px !important; 
+      height: 28px !important; 
       padding: 0 !important; 
-      font-size: 16px !important; 
+      font-size: 14px !important; 
       border-radius: 50% !important; 
       border: 1px solid #dc2626 !important; 
       background: #fff !important; 
@@ -161,9 +161,9 @@
     
     .dish-controls .qty .quantity { 
       font-weight: 600 !important; 
-      font-size: 16px !important; 
+      font-size: 14px !important; 
       color: #333 !important; 
-      min-width: 20px !important; 
+      min-width: 18px !important; 
       text-align: center !important; 
     }
     
@@ -171,28 +171,28 @@
     @media (max-width: 480px) {
       .dishes-grid { 
         grid-template-columns: 1fr !important; 
-        gap: 16px !important; 
-        padding: 12px !important; 
+        gap: 12px !important; 
+        padding: 10px !important; 
       }
       
       .dish-image { 
-        height: 160px !important; 
+        height: 120px !important; 
       }
       
       .dish-content { 
-        padding: 16px !important; 
+        padding: 12px !important; 
       }
       
       .dish-name { 
-        font-size: 16px !important; 
-      }
-      
-      .dish-description { 
         font-size: 14px !important; 
       }
       
+      .dish-description { 
+        font-size: 12px !important; 
+      }
+      
       .dish-price { 
-        font-size: 18px !important; 
+        font-size: 16px !important; 
       }
     }
     
