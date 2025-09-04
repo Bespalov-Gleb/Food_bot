@@ -58,6 +58,144 @@
       scroll-behavior: smooth;
     }
     
+    /* СЕТКА БЛЮД - 2 КОЛОНКИ */
+    .dishes-grid { 
+      display: grid !important; 
+      grid-template-columns: 1fr 1fr !important; 
+      gap: 12px !important; 
+      padding: 16px !important; 
+      box-sizing: border-box !important; 
+      width: 100% !important;
+    }
+    
+    .dish-card { 
+      border: 1px solid #eee !important; 
+      border-radius: 12px !important; 
+      background: #fff !important; 
+      overflow: hidden !important; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    .dish-image { 
+      width: 100% !important; 
+      height: 120px !important; 
+      object-fit: cover !important; 
+      display: block !important; 
+    }
+    
+    .dish-content { 
+      padding: 12px !important; 
+    }
+    
+    .dish-name { 
+      font-weight: 600 !important; 
+      font-size: 14px !important; 
+      margin: 0 0 4px 0 !important; 
+      color: #333 !important; 
+      line-height: 1.3 !important;
+    }
+    
+    .dish-description { 
+      font-size: 12px !important; 
+      color: #666 !important; 
+      margin: 0 0 8px 0 !important; 
+      line-height: 1.4 !important;
+      display: -webkit-box !important;
+      -webkit-line-clamp: 2 !important;
+      -webkit-box-orient: vertical !important;
+      overflow: hidden !important;
+    }
+    
+    .dish-price { 
+      font-weight: 700 !important; 
+      font-size: 16px !important; 
+      color: #dc2626 !important; 
+      margin: 0 0 12px 0 !important; 
+    }
+    
+    .dish-controls { 
+      display: flex !important; 
+      justify-content: space-between !important; 
+      align-items: center !important; 
+    }
+    
+    /* Кнопки управления количеством */
+    .dish-controls .controls { 
+      display: flex !important; 
+      align-items: center !important; 
+      gap: 8px !important; 
+    }
+    
+    .dish-controls .qty { 
+      display: inline-flex !important; 
+      align-items: center !important; 
+      gap: 8px !important; 
+    }
+    
+    .dish-controls .qty button { 
+      width: 32px !important; 
+      height: 32px !important; 
+      padding: 0 !important; 
+      font-size: 16px !important; 
+      border-radius: 50% !important; 
+      border: 1px solid #dc2626 !important; 
+      background: #fff !important; 
+      color: #dc2626 !important; 
+      display: flex !important; 
+      align-items: center !important; 
+      justify-content: center !important; 
+      cursor: pointer !important; 
+      transition: all 0.2s ease !important; 
+    }
+    
+    .dish-controls .qty button:hover { 
+      background: #dc2626 !important; 
+      color: #fff !important; 
+    }
+    
+    .dish-controls .qty button:active { 
+      transform: scale(0.95) !important; 
+    }
+    
+    .dish-controls .qty .quantity { 
+      font-weight: 600 !important; 
+      font-size: 16px !important; 
+      color: #333 !important; 
+      min-width: 20px !important; 
+      text-align: center !important; 
+    }
+    
+    /* Адаптивность для мобильных */
+    @media (max-width: 480px) {
+      .dishes-grid { 
+        grid-template-columns: 1fr !important; 
+        gap: 16px !important; 
+        padding: 12px !important; 
+      }
+      
+      .dish-image { 
+        height: 160px !important; 
+      }
+      
+      .dish-content { 
+        padding: 16px !important; 
+      }
+      
+      .dish-name { 
+        font-size: 16px !important; 
+      }
+      
+      .dish-description { 
+        font-size: 14px !important; 
+      }
+      
+      .dish-price { 
+        font-size: 18px !important; 
+      }
+    }
+    
     /* Стили для модального окна с информацией о ресторане */
     .restaurant-info-modal {
       position: fixed;
