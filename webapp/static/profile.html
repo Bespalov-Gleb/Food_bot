@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Профиль</title>
+  <link rel="stylesheet" href="/static/styles.v23.css?v=6" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>Профиль</h2>
+    <div id="user" class="meta"></div>
+    
+    <!-- Секция личных данных -->
+    <div class="group">
+      <div class="subtitle" id="personalDataToggle" style="cursor: pointer; user-select: none;">
+        <span id="personalDataIcon">▶</span> Личные данные
+      </div>
+      <div id="personalDataContent" style="display: none;">
+        <div style="display:flex;flex-direction:column;gap:8px;max-width:420px">
+          <label>Телефон <input id="fPhone" type="text" placeholder="+7 ..."/></label>
+          <label>Имя <input id="fName" type="text"/></label>
+          <label>Адрес <input id="fAddress" type="text"/></label>
+          <label>Дата рождения <input id="fBirth" type="date"/></label>
+          <div>
+            <button id="saveProfile">Сохранить</button>
+          </div>
+          <div class="meta">Правовые документы: <a href="#" id="docTerms">Пользовательское соглашение</a> · <a href="#" id="docPolicy">Политика конфиденциальности</a></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Секция истории заказов -->
+    <div class="group">
+      <div class="subtitle" id="ordersToggle" style="cursor: pointer; user-select: none;">
+        <span id="ordersIcon">▶</span> Мои заказы
+      </div>
+      <div id="ordersContent" style="display: none;">
+        <div id="orders"></div>
+      </div>
+    </div>
+    
+    <div style="margin-top:12px">
+      <a id="support" href="#" target="_blank">Связаться с нами</a>
+    </div>
+    <div class="nav-container">
+      <a id="navHome" href="#" class="nav-item">
+        <span class="nav-icon nav-icon-home"></span>
+        <span>Главное</span>
+      </a>
+      <span class="nav-item disabled">
+        <span class="nav-icon nav-icon-promo"></span>
+        <span>Акции</span>
+      </span>
+      <a id="navCart" href="#" class="nav-item">
+        <span class="nav-icon nav-icon-cart"></span>
+        <span>Корзина</span>
+      </a>
+      <a id="navProfile" href="#" class="nav-item active">
+        <span class="nav-icon nav-icon-profile"></span>
+        <span>Профиль</span>
+      </a>
+    </div>
+  </div>
+  <script>
+    const api = location.origin + '/api';
+    const tg = window.Telegram?.WebApp;
+    const userId = tg?.initDataUnsafe?.user?.id || 0;
+    const p = new URLSearchParams(location.search);
+    if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+
+    async function load() {
+      document.getElementById('user').textContent = userId ? ('Ваш id: ' + userId) : 'Откройте через кнопку бота';
+      const cfg = await (await fetch(api + '/config')).json();
+      document.getElementById('support').href = cfg.support_tg_url;
+
+      if (userId) {
+        try {
+          const prof = await (await fetch(api + '/users/me?uid=' + userId)).json();
+          document.getElementById('fPhone').value = prof.phone || '';
+          document.getElementById('fName').value = prof.name || '';
+          document.getElementById('fAddress').value = prof.address || '';
+          if (prof.birth_date) document.getElementById('fBirth').value = prof.birth_date;
+        } catch {}
+        const res = await fetch(api + '/orders?user_id=' + userId);
+        const data = await res.json();
+        const root = document.getElementById('orders');
+        root.innerHTML = '';
+        data.slice().reverse().forEach(o => {
+          const el = document.createElement('div');
+          el.className = 'restaurant';
+          const items = o.items.map(i => i.name + '×' + i.qty).join(', ');
+          el.innerHTML = `<div class="title">Заказ №${o.id} — ${o.status}</div>
+            <div class="meta">${items}</div>
+            <div class="meta">Итого: ${o.total_price} р</div>`;
+          el.onclick = () => { location.href = '/static/order.html?id=' + o.id + '&' + p.toString(); };
+          root.appendChild(el);
+        });
+      }
+    }
+
+    document.getElementById('saveProfile').onclick = async () => {
+      const body = {
+        phone: (document.getElementById('fPhone').value || null),
+        name: (document.getElementById('fName').value || null),
+        address: (document.getElementById('fAddress').value || null),
+        birth_date: (document.getElementById('fBirth').value || null),
+      };
+      await fetch(api + '/users/me?uid=' + userId, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Telegram-User-Id': String(userId) }, body: JSON.stringify(body) });
+      alert('Сохранено');
+    };
+    // Navigation
+    document.getElementById('navHome').onclick = (e) => { 
+      e.preventDefault(); 
+      location.href = '/static/index.html?' + p.toString(); 
+    };
+    
+    document.getElementById('navCart').onclick = (e) => { 
+      e.preventDefault(); 
+      location.href = '/static/cart.html?' + p.toString(); 
+    };
+    
+    // Функции для сворачивания/разворачивания секций
+    function toggleSection(contentId, iconId) {
+      const content = document.getElementById(contentId);
+      const icon = document.getElementById(iconId);
+      
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+      } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+      }
+    }
+    
+    // Обработчики для сворачивания секций
+    document.getElementById('personalDataToggle').onclick = () => {
+      toggleSection('personalDataContent', 'personalDataIcon');
+    };
+    
+    document.getElementById('ordersToggle').onclick = () => {
+      toggleSection('ordersContent', 'ordersIcon');
+    };
+    
+    // Загружаем данные при старте
+    load();
+  </script>
+</body>
+</html>
+

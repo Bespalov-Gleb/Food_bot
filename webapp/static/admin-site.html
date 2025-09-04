@@ -1,0 +1,289 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Site</title>
+  <link rel="stylesheet" href="/static/styles.v23.css?v=2" />
+</head>
+<body>
+  <div class="container">
+    <h2>Главная админка (веб)</h2>
+    <div id="auth">
+      <div class="meta">Авторизация</div>
+      <div class="group">
+        <input id="token" placeholder="Токен из ссылки" style="width:60%"/>
+        <button id="login">Войти</button>
+      </div>
+    </div>
+
+    <div id="app" style="display:none">
+      <div class="restaurant" style="margin-bottom:16px">
+        <div class="title">Добавить ресторан</div>
+        <div><input id="rname" placeholder="Название"/></div>
+        <div style="margin-top:6px"><button id="addR">Добавить</button></div>
+      </div>
+
+      <h3>Рестораны</h3>
+      <div id="list"></div>
+
+      <h3 style="margin-top:16px">Пользователи</h3>
+      <div class="restaurant" style="margin-bottom:8px">
+        <div class="meta">
+          ID пользователя: <input id="uidInput" placeholder="123456" style="width:160px"/>
+          <button id="blk">Заблокировать</button>
+          <button id="unblk" style="margin-left:6px">Разблокировать</button>
+          <button id="bindRA" style="margin-left:6px">Назначить админом ресторана</button>
+          <input id="bindRestId" placeholder="id ресторана" style="width:120px;margin-left:6px"/>
+          <button id="uload" style="margin-left:6px">Обновить список</button>
+        </div>
+      </div>
+      <div id="ulist"></div>
+
+      <h3 style="margin-top:16px">Статистика</h3>
+      <div class="restaurant" style="margin-bottom:8px">
+        <div class="meta"><button id="statsRefresh">Обновить</button></div>
+        <div id="statsGlobal" style="margin-top:6px"></div>
+      </div>
+      <div class="restaurant" style="margin-top:8px">
+        <div class="meta">
+          По ресторану:
+          <select id="statsRest"></select>
+          <button id="statsLoad">Показать</button>
+        </div>
+        <div id="statsByRest" class="meta" style="margin-top:6px"></div>
+      </div>
+
+      <h3 style="margin-top:16px">Отзывы</h3>
+      <div class="restaurant" style="margin-bottom:8px">
+        <div class="meta">
+          Фильтр по ресторану:
+          <select id="revRest"></select>
+          <button id="revLoad">Загрузить</button>
+        </div>
+      </div>
+      <div id="reviews"></div>
+    </div>
+  </div>
+
+  <script>
+    const q = new URLSearchParams(location.search);
+    const pageUid = q.get('uid') || '';
+
+    // Подставляем токен из hash, если пришли по ссылке вида ...#token=...
+    (function(){
+      const h = location.hash;
+      if (h && h.startsWith('#token=')) {
+        document.getElementById('token').value = decodeURIComponent(h.slice(7));
+      }
+    })();
+
+    document.getElementById('login').onclick = async () => {
+      const t = (document.getElementById('token').value || '').trim();
+      if (!t) { alert('Токен пуст'); return; }
+      const res = await fetch('/api/auth/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // ставим cookie
+        body: JSON.stringify({ token: t })
+      });
+      if (!res.ok) { alert('Неверный токен'); return; }
+      document.getElementById('auth').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      boot();
+    };
+
+    // Admin app
+    const api = location.origin + '/api';
+    const headers = { 'Content-Type': 'application/json' };
+
+    // добавляем uid в каждый URL (fallback на случай, если cookie не прикрепится)
+    const withUid = (url) => {
+      if (!pageUid) return url;
+      return url + (url.includes('?') ? '&' : '?') + 'uid=' + encodeURIComponent(pageUid);
+    };
+    const req = (url, opts = {}) => fetch(withUid(url), { credentials: 'include', ...opts });
+
+    async function boot() {
+      load();
+      loadUsers();
+      loadStatsGlobal();
+      populateRestaurantsSelect().then(loadStatsByRestaurant);
+      loadReviews();
+
+      document.getElementById('statsRefresh').onclick = loadStatsGlobal;
+      document.getElementById('statsLoad').onclick = loadStatsByRestaurant;
+      document.getElementById('revLoad').onclick = loadReviews;
+      document.getElementById('uload').onclick = loadUsers;
+
+      document.getElementById('addR').onclick = async () => {
+        const name = (document.getElementById('rname').value || '').trim();
+        if (!name) return;
+        await req(api + '/admin/restaurants', { method: 'POST', headers, body: JSON.stringify({ name }) });
+        document.getElementById('rname').value = '';
+        load();
+      };
+
+      document.getElementById('blk').onclick = async () => {
+        const id = parseInt((document.getElementById('uidInput').value || '').trim(), 10);
+        if (!id) return alert('Введите ID');
+        await req(api + '/admin/users/block?user_id=' + id + '&block=true', { method: 'POST', headers });
+        loadUsers();
+        alert('Пользователь заблокирован');
+      };
+
+      document.getElementById('unblk').onclick = async () => {
+        const id = parseInt((document.getElementById('uidInput').value || '').trim(), 10);
+        if (!id) return alert('Введите ID');
+        await req(api + '/admin/users/block?user_id=' + id + '&block=false', { method: 'POST', headers });
+        loadUsers();
+        alert('Пользователь разблокирован');
+      };
+
+      document.getElementById('bindRA').onclick = async () => {
+        const id = parseInt((document.getElementById('uidInput').value || '').trim(), 10);
+        const rid = parseInt((document.getElementById('bindRestId').value || '').trim(), 10);
+        if (!id || !rid) return alert('Введите user_id и restaurant_id');
+        await req(api + '/admin/users/bind-admin?user_id=' + id + '&restaurant_id=' + rid, { method: 'POST', headers });
+        alert('Назначен админом ресторана #' + rid);
+        loadUsers();
+      };
+    }
+
+    async function load() {
+      const res = await req(api + '/admin/restaurants', { headers });
+      if (!res.ok) { alert('Нет доступа'); return; }
+      const rs = await res.json();
+      const root = document.getElementById('list');
+      root.innerHTML = '';
+      rs.forEach(r => {
+        const el = document.createElement('div');
+        el.className = 'restaurant';
+        el.innerHTML = `
+          <div class="title">#${r.id} ${r.name}</div>
+          <div class="meta">Статус: ${r.is_enabled ? 'ON' : 'OFF'}</div>
+          <div class="meta">
+            Мин: <input data-field="delivery_min_sum" value="${r.delivery_min_sum}" style="width:80px"/>
+            · Дост: <input data-field="delivery_fee" value="${r.delivery_fee}" style="width:80px"/>
+            · Время: <input data-field="delivery_time_minutes" value="${r.delivery_time_minutes}" style="width:80px"/>
+          </div>
+          <div class="meta">Адрес: <input data-field="address" value="${r.address}" style="width:70%"/></div>
+          <div class="meta">Телефон: <input data-field="phone" value="${r.phone}" style="width:50%"/></div>
+          <div class="meta">Описание: <input data-field="description" value="${r.description || ''}" style="width:80%"/></div>
+          <div style="margin-top:6px">
+            <button data-act="save">Сохранить</button>
+            <button data-act="toggle" style="margin-left:8px">${r.is_enabled ? 'Выключить' : 'Включить'}</button>
+            <button data-act="del" style="margin-left:8px">Удалить</button>
+          </div>
+        `;
+        el.querySelector('[data-act="save"]').onclick = async () => {
+          const body = {};
+          el.querySelectorAll('input[data-field]').forEach(inp => {
+            const key = inp.getAttribute('data-field');
+            let val = (inp.value || '').trim();
+            if (['delivery_min_sum', 'delivery_fee', 'delivery_time_minutes'].includes(key)) {
+              const n = parseInt(val, 10);
+              if (!Number.isNaN(n)) val = n; else return;
+            }
+            body[key] = val;
+          });
+          const r2 = await req(api + '/admin/restaurants/' + r.id, { method: 'PATCH', headers, body: JSON.stringify(body) });
+          if (!r2.ok) { alert('Ошибка сохранения'); return; }
+          const data = await r2.json().catch(()=>({}));
+          if (data.restaurant) Object.assign(r, data.restaurant);
+          load();
+        };
+        el.querySelector('[data-act="toggle"]').onclick = async () => {
+          await req(api + '/admin/restaurants/' + r.id + '/status?enabled=' + (!r.is_enabled), { method: 'PATCH', headers });
+          load();
+        };
+        el.querySelector('[data-act="del"]').onclick = async () => {
+          if (!confirm('Удалить ресторан #' + r.id + '?')) return;
+          await req(api + '/admin/restaurants/' + r.id, { method: 'DELETE', headers });
+          load();
+        };
+        root.appendChild(el);
+      });
+    }
+
+    async function loadUsers() {
+      const res = await req(api + '/admin/users?t=' + Date.now(), { headers });
+      if (!res.ok) return;
+      const us = await res.json();
+      const root = document.getElementById('ulist');
+      root.innerHTML = '';
+      us.forEach(u => {
+        const el = document.createElement('div');
+        el.className = 'restaurant';
+        el.innerHTML = `<div class="title">${u.id}</div><div class="meta">${u.is_blocked ? 'Заблокирован' : 'Активен'}</div>`;
+        root.appendChild(el);
+      });
+    }
+
+    async function loadStatsGlobal() {
+      const res = await req(api + '/admin/stats?t=' + Date.now(), { headers });
+      if (!res.ok) return;
+      const s = await res.json();
+      const el = document.getElementById('statsGlobal');
+      el.innerHTML = `
+        <div class="title">Общая статистика</div>
+        <div class="meta">Сегодня: ${s.today.orders} заказов на сумму ${s.today.sum} р · Отмен: ${s.today.cancelled} · Изменений: ${s.today.modified}</div>
+        <div class="meta">Месяц: ${s.month.orders} заказов на сумму ${s.month.sum} р · Отмен: ${s.month.cancelled} · Изменений: ${s.month.modified}</div>
+      `;
+    }
+
+    async function populateRestaurantsSelect() {
+      const res = await req(api + '/admin/restaurants?t=' + Date.now(), { headers });
+      if (!res.ok) return;
+      const rs = await res.json();
+      const sel1 = document.getElementById('statsRest');
+      const sel2 = document.getElementById('revRest');
+      sel1.innerHTML = '';
+      sel2.innerHTML = '<option value="">Все</option>';
+      rs.forEach(r => {
+        const o1 = document.createElement('option'); o1.value = r.id; o1.textContent = `#${r.id} ${r.name}`; sel1.appendChild(o1);
+        const o2 = document.createElement('option'); o2.value = r.id; o2.textContent = `#${r.id} ${r.name}`; sel2.appendChild(o2);
+      });
+    }
+
+    async function loadStatsByRestaurant() {
+      const rid = Number(document.getElementById('statsRest').value);
+      if (!rid) { document.getElementById('statsByRest').textContent = ''; return; }
+      const res = await req(api + '/admin/stats/by-restaurant?restaurant_id=' + rid + '&t=' + Date.now(), { headers });
+      if (!res.ok) return;
+      const s = await res.json();
+      document.getElementById('statsByRest').innerHTML =
+        `Сегодня: ${s.today.orders} заказов на сумму ${s.today.sum} р · Отмен: ${s.today.cancelled} · Изменений: ${s.today.modified}<br/>
+         Месяц: ${s.month.orders} заказов на сумму ${s.month.sum} р · Отмен: ${s.month.cancelled} · Изменений: ${s.month.modified}`;
+    }
+
+    async function loadReviews() {
+      const rid = document.getElementById('revRest').value;
+      const url = rid ? (api + '/admin/reviews?restaurant_id=' + rid + '&t=' + Date.now())
+                      : (api + '/admin/reviews?t=' + Date.now());
+      const res = await req(url, { headers });
+      if (!res.ok) return;
+      const data = await res.json();
+      const rs = await (await req(api + '/admin/restaurants?t=' + Date.now(), { headers })).json();
+      const idToName = new Map(rs.map(r => [r.id, r.name]));
+      const root = document.getElementById('reviews');
+      root.innerHTML = '';
+      if (!data.length) { root.innerHTML = '<div class="meta">Нет отзывов</div>'; return; }
+      data.forEach(r => {
+        const el = document.createElement('div');
+        el.className = 'restaurant';
+        const rname = idToName.get(r.restaurant_id) || ('Ресторан ' + r.restaurant_id);
+        el.innerHTML = `<div class="title">#${r.id} · ${rname} · Оценка ${r.rating}/5</div>
+          <div class="meta">Пользователь: ${r.user_id} · Заказ: ${r.order_id}</div>
+          <div class="meta">${(r.comment || '').replace(/</g, '&lt;')}</div>
+          <div style="margin-top:6px"><button data-id="${r.id}">Удалить</button></div>`;
+        el.querySelector('button').onclick = async () => {
+          await req(api + '/admin/reviews/' + r.id, { method: 'DELETE', headers });
+          loadReviews();
+        };
+        root.appendChild(el);
+      });
+    }
+  </script>
+</body>
+</html>

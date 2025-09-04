@@ -1,0 +1,1028 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ресторан</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/static/styles.v23.css?v=19" />
+  <style>
+    /* Улучшенные стили для горизонтального скролла категорий */
+    .cat-row {
+      display: flex;
+      overflow-x: auto;
+      gap: 12px;
+      padding: 16px 12px;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      border-bottom: 1px solid #f0f0f0;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+    
+    .cat-row::-webkit-scrollbar {
+      display: none; /* Chrome/Safari/Opera */
+    }
+    
+    .cat-row button {
+      padding: 10px 20px;
+      border-radius: 20px;
+      border: 1px solid #e5e5e5;
+      background: #fff;
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .cat-row button:hover {
+      border-color: #d0d0d0;
+      background: #f8f8f8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .cat-row button.active {
+      background: #dc2626;
+      border-color: #dc2626;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+    }
+    
+    /* Плавный скролл для категорий */
+    .cat-row {
+      scroll-behavior: smooth;
+    }
+    
+    /* Стили для модального окна с информацией о ресторане */
+    .restaurant-info-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .restaurant-info-modal.show {
+      display: flex;
+      opacity: 1;
+    }
+    
+    .modal-content {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .restaurant-info-modal.show .modal-content {
+      transform: translateY(0);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #666;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+    }
+    
+    .close-modal:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .modal-body {
+      padding: 20px;
+    }
+    
+    .info-section {
+      margin-bottom: 24px;
+    }
+    
+    .info-section h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+    }
+    
+    .info-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    
+    .info-icon {
+      width: 20px;
+      height: 20px;
+      margin-right: 12px;
+      color: #666;
+    }
+    
+    .info-text {
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .cuisine-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    .cuisine-tag {
+      background: #e9ecef;
+      color: #495057;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .legal-info {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    
+    .legal-info h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
+    .legal-info p {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+    
+    /* Стили для нижней плашки заказа */
+    .checkout-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      padding: 16px;
+      z-index: 1000;
+      display: none;
+    }
+    
+    .checkout-content {
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    
+    .cart-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .cart-count {
+      background: #dc2626;
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .total-price {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .min-order-note {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+    
+    .checkout-btn {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .checkout-btn:hover {
+      background: #b91c1c;
+      transform: translateY(-1px);
+    }
+    
+    .checkout-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    /* Стили для блюд */
+    .dish-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .dish-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    
+    .dish-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+    
+    .dish-content {
+      padding: 16px;
+    }
+    
+    .dish-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    
+    .dish-description {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    
+    .dish-price {
+      font-size: 20px;
+      font-weight: 700;
+      color: #dc2626;
+      margin-bottom: 16px;
+    }
+    
+    .dish-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .add-btn {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .add-btn:hover {
+      background: #b91c1c;
+      transform: translateY(-1px);
+    }
+    
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    
+    .qty-btn:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+    }
+    
+    .qty-display {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      min-width: 30px;
+      text-align: center;
+    }
+    
+    /* Стили для категорий блюд */
+    .category-section {
+      margin-bottom: 32px;
+    }
+    
+    .category-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+      margin: 24px 16px 16px;
+      padding-left: 8px;
+      border-left: 4px solid #dc2626;
+    }
+    
+    .dishes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      padding: 0 16px;
+    }
+    
+    /* Адаптивность для мобильных устройств */
+    @media (max-width: 480px) {
+      .dishes-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 0 12px;
+      }
+      
+      .dish-card {
+        border-radius: 8px;
+      }
+      
+      .dish-content {
+        padding: 12px;
+      }
+      
+      .dish-name {
+        font-size: 16px;
+      }
+      
+      .dish-price {
+        font-size: 18px;
+      }
+      
+      .add-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+      }
+    }
+    
+    /* Стили для спейсера внизу */
+    .bottom-spacer {
+      height: 80px;
+      transition: height 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Заголовок ресторана -->
+    <div class="restaurant-header">
+      <div class="restaurant-info">
+        <h1 id="restaurantName">Загрузка...</h1>
+        <div class="restaurant-meta">
+          <span id="restaurantRating">★ 4.6 • 48 отзывов</span>
+          <span id="restaurantDelivery">35–45 мин</span>
+        </div>
+        <div class="restaurant-address" id="restaurantAddress">Адрес загружается...</div>
+      </div>
+      <button class="info-btn" onclick="showRestaurantInfo()">ℹ️</button>
+    </div>
+    
+    <!-- Категории блюд -->
+    <div class="cat-row" id="categoriesRow"></div>
+    
+    <!-- Сетка блюд -->
+    <div id="dishesGrid"></div>
+    
+    <!-- Спейсер для нижней плашки -->
+    <div id="bottomSpacer" class="bottom-spacer"></div>
+    
+    <!-- Нижняя плашка заказа -->
+    <div class="checkout-bar" id="checkoutBar">
+      <div class="checkout-content">
+        <div class="cart-info">
+          <div class="cart-count" id="cartCount">0</div>
+          <div>
+            <div class="total-price" id="totalPriceBottom">0 ₽</div>
+            <div class="min-order-note" id="minOrderText"></div>
+          </div>
+        </div>
+        <button class="checkout-btn" id="goCheckout" onclick="proceedToCheckout()">Оформить заказ</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Модальное окно с информацией о ресторане -->
+  <div class="restaurant-info-modal" id="restaurantInfoModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Информация о ресторане</h2>
+        <button class="close-modal" id="closeModal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-section">
+          <h3>Основная информация</h3>
+          <div class="info-item">
+            <span class="info-icon">📍</span>
+            <span class="info-text" id="modalAddress">Адрес загружается...</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">📞</span>
+            <span class="info-text" id="modalPhone">Телефон загружается...</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🕒</span>
+            <span class="info-text" id="modalWorkingHours">Режим работы загружается...</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">⭐</span>
+            <span class="info-text" id="modalRating">Рейтинг загружается...</span>
+          </div>
+        </div>
+        
+        <div class="info-section">
+          <h3>Кухня</h3>
+          <div class="cuisine-tags" id="modalCuisine">
+            <!-- Теги кухни будут добавлены динамически -->
+          </div>
+        </div>
+        
+        <div class="legal-info">
+          <h4>Юридическая информация</h4>
+          <p id="modalLegalName">Название компании загружается...</p>
+          <p id="modalLegalAddress">Юридический адрес загружается...</p>
+          <p id="modalLegalDetails">Реквизиты загружаются...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Навигация -->
+  <div class="nav-container">
+    <a id="navHome" href="#" class="nav-item">
+      <span class="nav-icon nav-icon-home"></span>
+      <span>Главное</span>
+    </a>
+    <span class="nav-item disabled">
+      <span class="nav-icon nav-icon-promo"></span>
+      <span>Акции</span>
+    </span>
+    <a id="navCart" href="#" class="nav-item">
+      <span class="nav-icon nav-icon-cart"></span>
+      <span>Корзина</span>
+    </a>
+    <a id="navMenu" href="#" class="nav-item">
+      <span class="nav-icon nav-icon-menu"></span>
+      <span>Меню</span>
+    </a>
+    <a id="navProfile" href="#" class="nav-item">
+      <span class="nav-icon nav-icon-profile"></span>
+      <span>Профиль</span>
+    </a>
+  </div>
+  
+  <script>
+    const api = location.origin + '/api';
+    const tg = window.Telegram?.WebApp;
+    const q = new URLSearchParams(location.search);
+    const uid = (q.get('uid') && Number(q.get('uid'))) || tg?.initDataUnsafe?.user?.id || 0;
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};
+    
+    let restaurantId = Number(q.get('id')) || 0;
+    let categories = [];
+    let dishes = [];
+    let cart = { items: [] };
+    let dishesMap = new Map();
+    let restaurantsMap = new Map();
+    let activeCategory = null;
+    
+    async function loadMenu() {
+      try {
+        const [catRes, dishRes, restRes] = await Promise.all([
+          fetch(api + '/categories?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { headers }),
+          fetch(api + '/dishes?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { headers }),
+          fetch(api + '/restaurants/' + restaurantId + (uid ? ('?uid=' + uid) : ''), { headers })
+        ]);
+        
+        categories = await catRes.json();
+        dishes = await dishRes.json();
+        const restaurant = await restRes.json();
+        
+        restaurantsMap.set(restaurant.id, restaurant);
+        
+        // Заполняем карту блюд
+        dishes.forEach(dish => {
+          dishesMap.set(dish.id, dish);
+        });
+        
+        renderRestaurantHeader(restaurant);
+        renderCategories();
+        renderDishes();
+        
+      } catch (error) {
+        console.error('Error loading menu:', error);
+      }
+    }
+    
+    function renderRestaurantHeader(restaurant) {
+      document.getElementById('restaurantName').textContent = restaurant.name;
+      document.getElementById('restaurantAddress').textContent = restaurant.address || 'Адрес не указан';
+      
+      // Формируем рейтинг
+      const rating = restaurant.rating_agg 
+        ? `★ ${Number(restaurant.rating_agg).toFixed(1)} • 48 отзывов`
+        : '★ 4.6 • 48 отзывов';
+      document.getElementById('restaurantRating').textContent = rating;
+      
+      // Формируем время доставки
+      const deliveryTime = restaurant.delivery_time_min && restaurant.delivery_time_max
+        ? `${restaurant.delivery_time_min}–${restaurant.delivery_time_max} мин`
+        : '35–45 мин';
+      document.getElementById('restaurantDelivery').textContent = deliveryTime;
+    }
+    
+    function renderCategories() {
+      const row = document.getElementById('categoriesRow');
+      row.innerHTML = '';
+      
+      categories.forEach(category => {
+        const button = document.createElement('button');
+        button.textContent = category.name;
+        button.onclick = () => {
+          activeCategory = category.id;
+          updateActiveCategory();
+          scrollToCategory(category.id);
+        };
+        row.appendChild(button);
+      });
+      
+      // Активируем первую категорию по умолчанию
+      if (categories.length > 0) {
+        activeCategory = categories[0].id;
+        updateActiveCategory();
+      }
+    }
+    
+    function updateActiveCategory() {
+      // Обновляем активную категорию в кнопках
+      document.querySelectorAll('.cat-row button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      if (activeCategory) {
+        const activeBtn = Array.from(document.querySelectorAll('.cat-row button')).find(btn => {
+          const category = categories.find(c => c.name === btn.textContent);
+          return category && category.id === activeCategory;
+        });
+        if (activeBtn) activeBtn.classList.add('active');
+      }
+    }
+    
+    function scrollToCategory(categoryId) {
+      const categoryElement = document.querySelector(`[data-category="${categoryId}"]`);
+      if (categoryElement) {
+        categoryElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    
+    function renderDishes() {
+      const grid = document.getElementById('dishesGrid');
+      grid.innerHTML = '';
+      
+      // Группируем блюда по категориям
+      const dishesByCategory = {};
+      dishes.forEach(dish => {
+        if (!dishesByCategory[dish.category_id]) {
+          dishesByCategory[dish.category_id] = [];
+        }
+        dishesByCategory[dish.category_id].push(dish);
+      });
+      
+      // Рендерим каждую категорию
+      categories.forEach(category => {
+        const categoryDishes = dishesByCategory[category.id] || [];
+        if (categoryDishes.length === 0) return;
+        
+        const categoryContainer = document.createElement('div');
+        categoryContainer.className = 'category-section';
+        categoryContainer.setAttribute('data-category', category.id);
+        
+        const categoryTitle = document.createElement('h2');
+        categoryTitle.className = 'category-title';
+        categoryTitle.textContent = category.name;
+        categoryContainer.appendChild(categoryTitle);
+        
+        const dishesGrid = document.createElement('div');
+        dishesGrid.className = 'dishes-grid';
+        
+        categoryDishes.forEach(dish => {
+          const card = document.createElement('div');
+          card.className = 'dish-card';
+          
+          card.innerHTML = `
+            <img src="${dish.image || 'https://via.placeholder.com/300x200?text=No+Image'}" alt="${dish.name}" class="dish-image" />
+            <div class="dish-content">
+              <h3 class="dish-name">${dish.name}</h3>
+              <p class="dish-description">${dish.description || 'Описание отсутствует'}</p>
+              <div class="dish-price">${dish.price || 0} ₽</div>
+              <div class="dish-controls">
+                <div class="controls" data-dish="${dish.id}">
+                  <button class="add-btn">+</button>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          const controls = card.querySelector('.controls');
+          const addBtn = controls.querySelector('.add-btn');
+          addBtn.onclick = () => {
+            if (dish.has_options) {
+              const p = new URLSearchParams(location.search);
+              if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning','1');
+              location.href = '/static/dish.html?id=' + dish.id + '&' + p.toString();
+            } else {
+              updateQtyClient(dish.id, 1);
+            }
+          };
+          dishesGrid.appendChild(card);
+        });
+        
+        categoryContainer.appendChild(dishesGrid);
+        grid.appendChild(categoryContainer);
+      });
+      
+      loadCartAndSync();
+    }
+    
+    async function addToCart(dishId, deltaQty) {
+      const dish = dishesMap.get(dishId);
+      const cartData = { 
+        restaurant_id: dish.restaurant_id, 
+        dish_id: dish.id, 
+        qty: deltaQty,
+        chosen_options: [] // Добавляем пустой массив опций
+      };
+      
+      console.log('Adding to cart from restaurant:', cartData);
+      
+      const res = await fetch(location.origin + '/api/cart/items' + (uid ? ('?uid=' + uid) : ''), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(cartData)
+      });
+      
+      console.log('Response status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+      
+      const data = await res.json();
+      console.log('Response data:', data);
+      
+      if (data.status === 'too_many_restaurants') {
+        showTooManyModal(data.current_restaurant_ids || [], async () => {
+          await fetch(location.origin + '/api/cart/items?force=true' + (uid ? ('&uid=' + uid) : ''), { 
+            method: 'POST', 
+            headers, 
+            body: JSON.stringify(cartData) 
+          });
+          await loadCartAndSync();
+        });
+      } else {
+        await loadCartAndSync();
+      }
+    }
+    
+    async function loadCartAndSync() {
+      const res = await fetch(api + '/cart' + (uid ? ('?uid=' + uid) : ''), { headers });
+      cart = await res.json();
+      renderQtyControls();
+      updateOrderSummary(); // Обновляем информацию в нижней плашке
+    }
+    
+    function getQtyForDish(dishId) {
+      return cart.items.filter(i => i.dish_id === dishId && dishesMap.get(i.dish_id)?.restaurant_id === restaurantId)
+        .reduce((s, i) => s + i.qty, 0);
+    }
+    
+    function renderQtyControls() {
+      document.querySelectorAll('.controls').forEach(c => {
+        const dishId = Number(c.getAttribute('data-dish'));
+        const dish = dishesMap.get(dishId);
+        const qty = getQtyForDish(dishId);
+        
+        if (qty <= 0) {
+          // Кнопка "+" для добавления блюда
+          c.innerHTML = '<button class="add-btn">+</button>';
+          c.querySelector('.add-btn').onclick = () => {
+            if (dish?.has_options) {
+              const p = new URLSearchParams(location.search);
+              if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+              location.href = '/static/dish.html?id=' + dishId + '&' + p.toString();
+            } else {
+              updateQtyClient(dishId, 1);
+            }
+          };
+        } else {
+          // Контролы с количеством: "-" количество "+"
+          c.innerHTML = `
+            <div class="qty-controls">
+              <button class="qty-btn" data-act="dec" title="Уменьшить количество">−</button>
+              <span class="qty-display">${qty}</span>
+              <button class="qty-btn" data-act="inc" title="Увеличить количество">+</button>
+            </div>
+          `;
+          
+          // Обработчик для кнопки "-"
+          c.querySelector('[data-act="dec"]').onclick = () => updateQtyClient(dishId, -1);
+          
+          // Обработчик для кнопки "+"
+          c.querySelector('[data-act="inc"]').onclick = () => {
+            if (dish?.has_options) {
+              const p = new URLSearchParams(location.search);
+              if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+              location.href = '/static/dish.html?id=' + dishId + '&' + p.toString();
+            } else {
+              updateQtyClient(dishId, 1);
+            }
+          };
+        }
+      });
+    }
+    
+    async function updateQtyClient(dishId, delta) {
+      if (delta > 0) {
+        await addToCart(dishId, 1);
+      } else {
+        const item = cart.items.find(i => i.dish_id === dishId && dishesMap.get(i.dish_id)?.restaurant_id === restaurantId);
+        if (item) {
+          const newQty = Math.max(0, item.qty - 1);
+          if (newQty === 0) {
+            await fetch(api + '/cart/items/' + item.id + (uid ? ('&uid=' + uid) : ''), { method: 'DELETE', headers });
+          } else {
+            await fetch(api + '/cart/items/' + item.id + '?qty=' + newQty + (uid ? ('&uid=' + uid) : ''), { method: 'PATCH', headers });
+          }
+          await loadCartAndSync();
+        }
+      }
+    }
+    
+    function calcTotalForRestaurant() {
+      return cart.items.reduce((sum, it) => {
+        const d = dishesMap.get(it.dish_id);
+        if (!d || d.restaurant_id !== restaurantId) return sum;
+        return sum + (d.price || 0) * it.qty;
+      }, 0);
+    }
+    
+    function updateOrderSummary() {
+      const sum = calcTotalForRestaurant();
+      const totalItems = cart.items.filter(i => {
+        const d = dishesMap.get(i.dish_id);
+        return d && d.restaurant_id === restaurantId;
+      }).reduce((s, i) => s + i.qty, 0);
+      
+      // Обновляем количество товаров
+      document.getElementById('cartCount').textContent = totalItems;
+      document.getElementById('totalPriceBottom').textContent = sum + ' ₽';
+      
+      // Минимальная сумма заказа из данных ресторана
+      const r = restaurantsMap.get(restaurantId);
+      if (r && r.delivery_min_sum) {
+        const remaining = Math.max(0, r.delivery_min_sum - sum);
+        if (remaining > 0) {
+          document.getElementById('minOrderText').textContent = `Еще ${remaining} ₽ до минимального заказа`;
+        } else {
+          document.getElementById('minOrderText').textContent = 'Минимальная сумма заказа достигнута';
+        }
+      } else {
+        // Заглушка если нет данных о минимальной сумме
+        const minOrder = 1000;
+        const remaining = Math.max(0, minOrder - sum);
+        if (remaining > 0) {
+          document.getElementById('minOrderText').textContent = `Еще ${remaining} ₽ до минимального заказа`;
+        } else {
+          document.getElementById('minOrderText').textContent = 'Минимальная сумма заказа достигнута';
+        }
+      }
+      
+      // Показываем/скрываем нижнюю плашку
+      const checkoutBar = document.getElementById('checkoutBar');
+      const bottomSpacer = document.getElementById('bottomSpacer');
+      
+      if (sum > 0) {
+        checkoutBar.style.display = 'block';
+        bottomSpacer.style.height = '80px';
+      } else {
+        checkoutBar.style.display = 'none';
+        bottomSpacer.style.height = '0px';
+      }
+    }
+    
+    // Функция для перехода к оформлению заказа
+    function proceedToCheckout() {
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      p.set('r', String(restaurantId));
+      location.href = '/static/cart.html?' + p.toString();
+    }
+    
+    // Функции для работы с модальным окном
+    function showRestaurantInfo() {
+      const restaurant = restaurantsMap.get(restaurantId);
+      if (!restaurant) return;
+      
+      // Заполняем данные в модальном окне
+      document.getElementById('modalAddress').textContent = restaurant.address || 'Адрес не указан';
+      document.getElementById('modalPhone').textContent = restaurant.phone || 'Телефон не указан';
+      
+      // Формируем информацию о режиме работы
+      const workingHours = restaurant.work_open_min !== undefined && restaurant.work_close_min !== undefined 
+        ? `Работаем с ${formatTime(restaurant.work_open_min)} до ${formatTime(restaurant.work_close_min)}`
+        : 'Режим работы: ежедневно';
+      document.getElementById('modalWorkingHours').textContent = workingHours;
+      
+      // Формируем рейтинг
+      const rating = restaurant.rating_agg 
+        ? `★ ${Number(restaurant.rating_agg).toFixed(1)} • 48 отзывов`
+        : '★ 4.6 • 48 отзывов';
+      document.getElementById('modalRating').textContent = rating;
+      
+      // Формируем теги кухни (используем доступные данные)
+      const cuisineTags = ['Американская', 'Бургеры', 'Завтраки', 'Кофе', 'Фастфуд', 'Десерты'];
+      const cuisineContainer = document.getElementById('modalCuisine');
+      cuisineContainer.innerHTML = '';
+      cuisineTags.forEach(tag => {
+        const tagElement = document.createElement('span');
+        tagElement.className = 'cuisine-tag';
+        tagElement.textContent = tag;
+        cuisineContainer.appendChild(tagElement);
+      });
+      
+      // Заполняем юридическую информацию (заглушки, так как у нас нет этих данных)
+      document.getElementById('modalLegalName').textContent = 'ООО "Система ПБО"';
+      document.getElementById('modalLegalAddress').textContent = '115054, Россия, г. Москва, Валовая, дом 26';
+      document.getElementById('modalLegalDetails').textContent = 'ИНН 7710044140, рег. номер 1027700251754';
+      
+      // Показываем модальное окно
+      const modal = document.getElementById('restaurantInfoModal');
+      modal.classList.add('show');
+      
+      // Добавляем обработчик для закрытия по клику вне модального окна
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          hideRestaurantInfo();
+        }
+      });
+    }
+    
+    function hideRestaurantInfo() {
+      const modal = document.getElementById('restaurantInfoModal');
+      modal.classList.remove('show');
+    }
+    
+    function formatTime(minutes) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    }
+    
+    // Modal for too many restaurants
+    function ensureOverlay() {
+      let ov = document.getElementById('ov');
+      if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'ov';
+        ov.className = 'overlay';
+        ov.innerHTML = '<div class="modal"><h3>Слишком много корзин</h3><div class="muted">Удалите корзину, чтобы собрать новую</div><div id="ovList"></div><div style="margin-top:10px;text-align:right"><button id="ovDone" class="primary">Готово</button></div></div>';
+        document.body.appendChild(ov);
+      }
+      return ov;
+    }
+    
+    async function showTooManyModal(restIds, onDone) {
+      const ov = ensureOverlay();
+      const list = ov.querySelector('#ovList');
+      list.innerHTML = '';
+      
+      // Load names
+      const resR = await fetch(api + '/restaurants/_bulk?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : ''), { headers });
+      const rests = resR.ok ? await resR.json() : [];
+      rests.forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<div>${r.name}</div><button class="trash">🗑</button>`;
+        row.querySelector('.trash').onclick = async () => {
+          await fetch(api + '/cart/clear?restaurant_id=' + r.id + (uid ? ('&uid=' + uid) : ''), { method: 'POST', headers });
+          row.remove();
+        };
+        list.appendChild(row);
+      });
+      ov.style.display = 'flex';
+      ov.querySelector('#ovDone').onclick = async () => {
+        ov.style.display = 'none';
+        if (onDone) await onDone();
+      };
+    }
+    
+    // Navigation
+    document.getElementById('navHome').onclick = (e) => { 
+      e.preventDefault(); 
+      const p = new URLSearchParams(location.search); 
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1'); 
+      location.href = '/static/index.html?' + p.toString(); 
+    };
+    
+    document.getElementById('navCart').onclick = (e) => { 
+      e.preventDefault(); 
+      const p = new URLSearchParams(location.search); 
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1'); 
+      location.href = '/static/cart.html?' + p.toString(); 
+    };
+    
+    document.getElementById('navProfile').onclick = (e) => { 
+      e.preventDefault(); 
+      const p = new URLSearchParams(location.search); 
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1'); 
+      location.href = '/static/profile.html?' + p.toString(); 
+    };
+    
+    // Primary initialization
+    loadMenu();
+    
+    // Add scroll handler for updating active category
+    window.addEventListener('scroll', updateActiveCategory);
+    
+    // Modal close handler
+    document.getElementById('closeModal').onclick = hideRestaurantInfo;
+  </script>
+</body>
+</html>

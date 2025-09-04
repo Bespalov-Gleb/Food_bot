@@ -1,0 +1,1276 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Детали заказа</title>
+  <link rel="stylesheet" href="/static/styles.v23.css?v=32" />
+  <style>
+    .order-details-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    /* Модальное окно для обработки заказа */
+    .order-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    
+    .order-modal {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      position: relative;
+      z-index: 10000;
+    }
+    
+    .order-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    
+    .order-modal-close:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .order-modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 20px;
+      padding-right: 40px;
+    }
+    
+    .order-details-section {
+      margin-bottom: 20px;
+    }
+    
+    .order-detail-item {
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #374151;
+    }
+    
+    .order-detail-label {
+      font-weight: 500;
+      color: #6b7280;
+    }
+    
+    /* Стили для изменения заказа */
+    .order-items-edit-section {
+      margin-bottom: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      background: #f9fafb;
+    }
+    
+    .order-items-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .order-item-edit {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      background: white;
+      transition: all 0.2s ease;
+    }
+    
+    .order-item-edit.modified {
+      border-color: #dc2626;
+      background: #fef2f2;
+      box-shadow: 0 0 0 1px #dc2626;
+    }
+    
+    .item-info {
+      flex: 1;
+      margin-right: 16px;
+    }
+    
+    .item-name {
+      display: block;
+      font-weight: 500;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    
+    .item-price {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .item-quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid #d1d5db;
+      background: white;
+      color: #374151;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    
+    .qty-btn:hover {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+    }
+    
+    .qty-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .qty-input {
+      width: 50px;
+      height: 32px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .qty-input:focus {
+      outline: none;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .modify-comment-section {
+      margin-bottom: 20px;
+    }
+    
+    .comment-label {
+      display: block;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    
+    .modify-comment {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+    }
+    
+    .modify-comment:focus {
+      outline: none;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .comment-note {
+      font-size: 12px;
+      color: #dc2626;
+      margin-top: 4px;
+      font-style: italic;
+    }
+    
+    .modify-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .modify-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .modify-cancel {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .modify-cancel:hover {
+      background: #e5e7eb;
+    }
+    
+    .modify-save {
+      background: #dc2626;
+      color: white;
+    }
+    
+    .modify-save:hover {
+      background: #b91c1c;
+    }
+    
+    .modify-save:disabled {
+      background: #d1d5db;
+      cursor: not-allowed;
+    }
+    
+    /* Модальное окно для отмены заказа */
+    .cancel-warning {
+      display: flex;
+      align-items: center;
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      color: #92400e;
+    }
+    
+    .warning-icon {
+      font-size: 24px;
+      margin-right: 12px;
+    }
+    
+    .warning-text {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .cancel-comment-section {
+      margin-bottom: 20px;
+    }
+    
+    .cancel-comment {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 100px;
+      font-family: inherit;
+    }
+    
+    .cancel-comment:focus {
+      outline: none;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .cancel-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .cancel-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .cancel-back {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .cancel-back:hover {
+      background: #e5e7eb;
+    }
+    
+    .cancel-confirm {
+      background: #dc2626;
+      color: white;
+    }
+    
+    .cancel-confirm:hover {
+      background: #b91c1c;
+    }
+    
+    .cancel-confirm:disabled {
+      background: #d1d5db;
+      cursor: not-allowed;
+    }
+    
+    .order-header {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .order-status {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    
+    .order-time {
+      font-size: 14px;
+      color: #6b7280;
+    }
+    
+    .order-delivery-time {
+      font-size: 14px;
+      color: #059669;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    
+    .order-content {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .order-section {
+      margin-bottom: 20px;
+    }
+    
+    .order-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 12px;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 8px;
+    }
+    
+    .order-items {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .order-item {
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 14px;
+      color: #374151;
+    }
+    
+    .order-item:last-child {
+      border-bottom: none;
+    }
+    
+    .order-total {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 2px solid #e5e7eb;
+    }
+    
+    .order-info {
+      display: grid;
+      gap: 12px;
+    }
+    
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    
+    .info-label {
+      font-weight: 500;
+      color: #6b7280;
+    }
+    
+    .info-value {
+      color: #374151;
+      text-align: right;
+    }
+    
+    .client-phone {
+      font-weight: 600;
+      color: #3b82f6;
+    }
+    
+    .order-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    
+    .action-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    
+    .btn-cancel {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .btn-cancel:hover {
+      background: #fecaca;
+    }
+    
+    .btn-modify {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .btn-modify:hover {
+      background: #fde68a;
+    }
+    
+    .btn-delivered {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .btn-delivered:hover {
+      background: #a7f3d0;
+    }
+    
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #f3f4f6;
+      color: #374151;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    
+    .back-btn:hover {
+      background: #e5e7eb;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+    
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #991b1b;
+      background: #fee2e2;
+      border-radius: 8px;
+    }
+    
+    /* Стили для отзыва о заказе */
+    .order-feedback-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .feedback-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 8px;
+    }
+    
+    .rating-section {
+      margin-bottom: 16px;
+    }
+    
+    .rating-label {
+      display: block;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    
+    .star-rating {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    
+    .star {
+      font-size: 24px;
+      color: #d1d5db;
+      cursor: pointer;
+      transition: color 0.2s ease;
+      user-select: none;
+    }
+    
+    .star:hover,
+    .star.active {
+      color: #fbbf24;
+    }
+    
+    .star.filled {
+      color: #fbbf24;
+    }
+    
+    .rating-text {
+      margin-left: 12px;
+      font-size: 14px;
+      color: #6b7280;
+      min-width: 80px;
+    }
+    
+    .feedback-comment-section {
+      margin-bottom: 16px;
+    }
+    
+    .feedback-comment {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+    }
+    
+    .feedback-comment:focus {
+      outline: none;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .feedback-submit {
+      background: #dc2626;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .feedback-submit:hover {
+      background: #b91c1c;
+    }
+    
+    .feedback-submit:disabled {
+      background: #d1d5db;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="order-details-container">
+    <a href="/static/ra.html?uid=${uid}" class="back-btn">← Назад к заказам</a>
+    
+    <div id="order-content">
+      <div class="loading">Загрузка данных заказа...</div>
+    </div>
+  </div>
+
+  <script>
+    const api = location.origin + '/api';
+    const q = new URLSearchParams(location.search);
+    const uid = Number(q.get('uid')) || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 0);
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};
+    const orderId = q.get('order_id');
+    
+    if (!orderId) {
+      document.getElementById('order-content').innerHTML = `
+        <div class="error">
+          Ошибка: не указан ID заказа
+        </div>
+      `;
+    } else {
+      loadOrderDetails();
+    }
+    
+    async function loadOrderDetails() {
+      try {
+        // Загружаем заказ напрямую по ID
+        const res = await fetch(api + '/ra/orders/' + orderId, { headers });
+        if (!res.ok) {
+          throw new Error('Ошибка загрузки заказа');
+        }
+        
+        const order = await res.json();
+        renderOrderDetails(order);
+      } catch (error) {
+        console.error('Error loading order details:', error);
+        document.getElementById('order-content').innerHTML = `
+          <div class="error">
+            Ошибка загрузки данных заказа: ${error.message}
+          </div>
+        `;
+      }
+    }
+    
+    function renderOrderDetails(order) {
+      const acceptedTime = order.accepted_at ? new Date(order.accepted_at) : new Date();
+      const etaMinutes = order.eta_minutes || 60;
+      
+      const orderContent = document.getElementById('order-content');
+      orderContent.innerHTML = `
+        <div class="order-header">
+          <div class="order-status" id="order-status">Принят рестораном в ${acceptedTime.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}.</div>
+          <div class="order-time">Время заказа: ${new Date(order.created_at).toLocaleString('ru-RU')}</div>
+          <div class="order-delivery-time" id="delivery-countdown">Время доставки - ${formatDeliveryTime(etaMinutes)}</div>
+        </div>
+        
+        <div class="order-content">
+          <div class="order-section">
+            <div class="section-title">Состав заказа:</div>
+            <ul class="order-items">
+              ${order.items.map(item => `
+                <li class="order-item">${item.name}</li>
+              `).join('')}
+            </ul>
+            <div class="order-total">Итого: ${order.total_price} ₽</div>
+          </div>
+          
+          <div class="order-section">
+            <div class="section-title">Информация о заказе</div>
+            <div class="order-info">
+              <div class="info-item">
+                <span class="info-label">Оплата:</span>
+                <span class="info-value">${formatPaymentMethod(order.payment_method)}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Адрес:</span>
+                <span class="info-value">${order.address || 'Самовывоз'}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Номер клиента:</span>
+                <span class="info-value client-phone">${formatPhone(order.phone)}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Комментарий клиента:</span>
+                <span class="info-value">${order.client_comment || 'Нет комментария'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="order-actions">
+          <button class="action-btn btn-cancel" onclick="cancelOrder()">Отменить</button>
+          <button class="action-btn btn-modify" onclick="modifyOrder()">Изменить заказ</button>
+          <button class="action-btn btn-delivered" onclick="markDelivered()">Доставлено</button>
+        </div>
+        
+        <div class="order-feedback-section">
+          <div class="feedback-title">Отзыв о заказе</div>
+          
+          <div class="rating-section">
+            <label class="rating-label">Оценка:</label>
+            <div class="star-rating">
+              <span class="star" data-rating="1" onclick="setRating(1)">★</span>
+              <span class="star" data-rating="2" onclick="setRating(2)">★</span>
+              <span class="star" data-rating="3" onclick="setRating(3)">★</span>
+              <span class="star" data-rating="4" onclick="setRating(4)">★</span>
+              <span class="star" data-rating="5" onclick="setRating(5)">★</span>
+              <span class="rating-text" id="rating-text">Выберите оценку</span>
+            </div>
+          </div>
+          
+          <div class="feedback-comment-section">
+            <label class="comment-label">Комментарий:</label>
+            <textarea class="feedback-comment" 
+                      placeholder="Ваш отзыв о заказе..."
+                      rows="3"></textarea>
+          </div>
+          
+          <button class="feedback-submit" onclick="submitFeedback()" disabled>
+            Отправить отзыв
+          </button>
+        </div>
+      `;
+      
+      // Запускаем таймер обратного отсчета
+      if (order.status === 'accepted') {
+        startCountdown(order.id, etaMinutes, acceptedTime);
+      }
+    }
+    
+    function formatDeliveryTime(minutes) {
+      if (minutes === 30) return '30 минут';
+      if (minutes === 60) return '1 час';
+      if (minutes === 90) return '1,5 часа';
+      if (minutes === 120) return '2 часа';
+      if (minutes === 180) return '3 часа';
+      return `${minutes} минут`;
+    }
+    
+    function formatPaymentMethod(method) {
+      const methods = {
+        'cash': 'Наличными',
+        'card_to_courier': 'Картой курьеру',
+        'transfer': 'Переводом'
+      };
+      return methods[method] || method;
+    }
+    
+    function formatPhone(phone) {
+      if (!phone) return 'Не указан';
+      // Форматируем номер телефона в российском формате
+      const cleaned = phone.replace(/\D/g, '');
+      if (cleaned.length === 11) {
+        return `${cleaned[0]} ${cleaned.slice(1, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7, 9)} ${cleaned.slice(9)}`;
+      }
+      return phone;
+    }
+    
+    async function cancelOrder() {
+      console.log('=== CANCEL ORDER FROM DETAILS PAGE ===');
+      
+      // Показываем модальное окно для отмены заказа
+      showCancelOrderModal(orderId);
+    }
+    
+    // Функция показа модального окна отмены заказа
+    function showCancelOrderModal(orderId) {
+      console.log('=== SHOW CANCEL ORDER MODAL ===');
+      console.log('Order ID for cancellation:', orderId);
+      
+      // Создаем модальное окно для отмены заказа
+      const modal = document.createElement('div');
+      modal.className = 'order-modal-overlay';
+      modal.innerHTML = `
+        <div class="order-modal" style="max-width: 500px;">
+          <button class="order-modal-close" onclick="this.closest('.order-modal-overlay').remove()">×</button>
+          <div class="order-modal-title">Отмена заказа #${orderId}</div>
+          
+          <div class="cancel-warning">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-text">
+              Вы уверены, что хотите отменить этот заказ? 
+              Отмена заказа не может быть отменена.
+            </div>
+          </div>
+          
+          <div class="cancel-comment-section">
+            <label class="comment-label">Причина отмены заказа:</label>
+            <textarea class="cancel-comment" 
+                      placeholder="Укажите причину отмены заказа (обязательно)..."
+                      rows="4"></textarea>
+            <div class="comment-note">* Комментарий обязателен для отмены заказа</div>
+          </div>
+          
+          <div class="cancel-actions">
+            <button class="cancel-btn cancel-back" onclick="this.closest('.order-modal-overlay').remove()">
+              Вернуться к заказу
+            </button>
+            <button class="cancel-btn cancel-confirm" onclick="confirmOrderCancellation(${orderId})" disabled>
+              Отменить заказ
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      console.log('Cancel modal created and appended');
+      
+      // Активируем кнопку отмены при вводе комментария
+      const commentTextarea = modal.querySelector('.cancel-comment');
+      const confirmBtn = modal.querySelector('.cancel-confirm');
+      
+      commentTextarea.addEventListener('input', function() {
+        confirmBtn.disabled = this.value.trim().length === 0;
+      });
+      
+      // Фокус на поле комментария
+      commentTextarea.focus();
+    }
+    
+    // Функция подтверждения отмены заказа
+    async function confirmOrderCancellation(orderId) {
+      console.log('=== CONFIRM ORDER CANCELLATION ===');
+      
+      const commentTextarea = document.querySelector('.cancel-comment');
+      const reason = commentTextarea.value.trim();
+      
+      if (!reason) {
+        alert('Пожалуйста, укажите причину отмены заказа');
+        commentTextarea.focus();
+        return;
+      }
+      
+      console.log('Cancelling order with reason:', reason);
+      
+      const confirmBtn = document.querySelector('.cancel-confirm');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Отмена...';
+      
+      try {
+        const res = await fetch(api + '/ra/orders/' + orderId + '/cancel?reason=' + encodeURIComponent(reason), {
+          method: 'POST',
+          headers
+        });
+        
+        if (res.ok) {
+          alert('Заказ успешно отменен!');
+          // Закрываем модальное окно
+          document.querySelector('.order-modal-overlay').remove();
+          // Переходим на страницу заказов
+          window.location.href = '/static/ra.html';
+        } else {
+          throw new Error('Ошибка отмены заказа');
+        }
+        
+      } catch (error) {
+        console.error('Error cancelling order:', error);
+        alert('Ошибка при отмене заказа: ' + error.message);
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Отменить заказ';
+      }
+    }
+    
+    function modifyOrder() {
+      console.log('=== MODIFY ORDER FROM DETAILS PAGE ===');
+      
+      // Показываем модальное окно для изменения заказа
+      showModifyOrderModal(orderId);
+    }
+    
+    // Функция показа модального окна изменения заказа
+    async function showModifyOrderModal(orderId) {
+      console.log('=== SHOW MODIFY ORDER MODAL ===');
+      console.log('Order ID for modification:', orderId);
+      
+      try {
+        // Получаем данные заказа
+        const res = await fetch(api + '/ra/orders/' + orderId, { headers });
+        if (!res.ok) {
+          throw new Error(`Ошибка загрузки заказа: ${res.status}`);
+        }
+        
+        const order = await res.json();
+        console.log('Order data loaded:', order);
+        
+        // Создаем модальное окно для изменения заказа
+        const modal = document.createElement('div');
+        modal.className = 'order-modal-overlay';
+        modal.innerHTML = `
+          <div class="order-modal" style="max-width: 95%; max-height: 90%;">
+            <button class="order-modal-close" onclick="this.closest('.order-modal-overlay').remove()">×</button>
+            <div class="order-modal-title">Изменение заказа #${orderId}</div>
+            
+            <div class="order-details-section">
+              <div class="order-detail-item">
+                <span class="order-detail-label">Статус:</span> ${getStatusText(order.status)}
+              </div>
+              <div class="order-detail-item">
+                <span class="order-detail-label">Сумма:</span> ${order.total_price} ₽
+              </div>
+              <div class="order-detail-item">
+                <span class="order-detail-label">Тип доставки:</span> ${order.delivery_type === 'delivery' ? 'Доставка' : 'Самовывоз'}
+              </div>
+            </div>
+            
+            <div class="order-items-edit-section">
+              <h4 style="margin: 16px 0 12px 0; color: #1f2937; font-size: 16px;">Состав заказа</h4>
+              <div class="order-items-list">
+                ${order.items.map((item, index) => `
+                  <div class="order-item-edit" data-index="${index}" data-original-qty="${item.qty}">
+                    <div class="item-info">
+                      <span class="item-name">${item.name}</span>
+                      <span class="item-price">${item.price || 'Цена не указана'} ₽</span>
+                    </div>
+                    <div class="item-quantity-controls">
+                      <button class="qty-btn qty-minus" onclick="changeItemQuantity(${index}, -1)">−</button>
+                      <input type="number" class="qty-input" value="${item.qty}" min="0" max="99" 
+                             onchange="updateItemQuantity(${index}, this.value)">
+                      <button class="qty-btn qty-plus" onclick="changeItemQuantity(${index}, 1)">+</button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div class="modify-comment-section">
+              <label class="comment-label">Комментарий к изменению заказа:</label>
+              <textarea class="modify-comment" 
+                        placeholder="Укажите причину изменения заказа (обязательно)..."
+                        rows="3"></textarea>
+              <div class="comment-note">* Комментарий обязателен для изменения заказа</div>
+            </div>
+            
+            <div class="modify-actions">
+              <button class="modify-btn modify-cancel" onclick="this.closest('.order-modal-overlay').remove()">
+                Отмена
+              </button>
+              <button class="modify-btn modify-save" onclick="saveOrderModification(${orderId})" disabled>
+                Сохранить изменения
+              </button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(modal);
+        console.log('Modify modal created and appended');
+        
+        // Активируем кнопку сохранения при вводе комментария
+        const commentTextarea = modal.querySelector('.modify-comment');
+        const saveBtn = modal.querySelector('.modify-save');
+        
+        commentTextarea.addEventListener('input', function() {
+          saveBtn.disabled = this.value.trim().length === 0;
+        });
+        
+      } catch (error) {
+        console.error('Error showing modify modal:', error);
+        alert('Ошибка при загрузке данных заказа: ' + error.message);
+      }
+    }
+    
+    // Функция для получения текста статуса
+    function getStatusText(status) {
+      const statusMap = {
+        'sent': 'Отправлен',
+        'accepted': 'Принят',
+        'delivered': 'Доставлен',
+        'cancelled': 'Отменен',
+        'modified': 'Изменен'
+      };
+      return statusMap[status] || status;
+    }
+    
+    // Функция изменения количества блюда
+    function changeItemQuantity(index, delta) {
+      const itemElement = document.querySelector(`[data-index="${index}"]`);
+      const qtyInput = itemElement.querySelector('.qty-input');
+      const newQty = Math.max(0, parseInt(qtyInput.value) + delta);
+      qtyInput.value = newQty;
+      updateItemQuantity(index, newQty);
+    }
+    
+    // Функция обновления количества блюда
+    function updateItemQuantity(index, newQty) {
+      const itemElement = document.querySelector(`[data-index="${index}"]`);
+      const originalQty = parseInt(itemElement.dataset.originalQty);
+      
+      // Визуально показываем изменения
+      if (newQty !== originalQty) {
+        itemElement.classList.add('modified');
+      } else {
+        itemElement.classList.remove('modified');
+      }
+    }
+    
+    // Функция сохранения изменений заказа
+    async function saveOrderModification(orderId) {
+      console.log('=== SAVE ORDER MODIFICATION ===');
+      
+      const commentTextarea = document.querySelector('.modify-comment');
+      const comment = commentTextarea.value.trim();
+      
+      if (!comment) {
+        alert('Пожалуйста, укажите комментарий к изменению заказа');
+        commentTextarea.focus();
+        return;
+      }
+      
+      // Собираем изменения
+      const modifications = [];
+      const itemElements = document.querySelectorAll('.order-item-edit');
+      
+      itemElements.forEach((itemElement, index) => {
+        const originalQty = parseInt(itemElement.dataset.originalQty);
+        const newQty = parseInt(itemElement.querySelector('.qty-input').value);
+        
+        if (newQty !== originalQty) {
+          modifications.push({
+            index: index,
+            qty: newQty
+          });
+        }
+      });
+      
+      // Проверяем, есть ли изменения или комментарий
+      if (modifications.length === 0 && comment.trim().length === 0) {
+        alert('Нет изменений для сохранения и комментарий не указан');
+        return;
+      }
+      
+      console.log('Modifications to save:', modifications);
+      console.log('Comment:', comment);
+      
+      const saveBtn = document.querySelector('.modify-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Сохранение...';
+      
+      try {
+        // Если есть изменения в блюдах, отправляем их
+        if (modifications.length > 0) {
+          const res = await fetch(api + '/ra/orders/' + orderId + '/modify-items', {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: modifications,
+              comment: comment
+            })
+          });
+          
+          if (res.ok) {
+            alert('Заказ успешно изменен!');
+            // Закрываем модальное окно
+            document.querySelector('.order-modal-overlay').remove();
+            // Перезагружаем страницу
+            location.reload();
+          } else {
+            const errorText = await res.text();
+            throw new Error(`Ошибка API: ${res.status} - ${errorText}`);
+          }
+        } else {
+          // Если нет изменений в блюдах, отправляем только комментарий
+          const res = await fetch(api + '/ra/orders/' + orderId + '/modify?comment=' + encodeURIComponent(comment), {
+            method: 'POST',
+            headers: headers
+          });
+          
+          if (res.ok) {
+            alert('Комментарий к заказу успешно добавлен!');
+            // Закрываем модальное окно
+            document.querySelector('.order-modal-overlay').remove();
+            // Перезагружаем страницу
+            location.reload();
+          } else {
+            const errorText = await res.text();
+            throw new Error(`Ошибка API: ${res.status} - ${errorText}`);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error saving modifications:', error);
+        alert('Ошибка при сохранении изменений: ' + error.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Сохранить изменения';
+      }
+    }
+    
+    async function markDelivered() {
+      // Останавливаем таймер
+      stopCountdown(orderId);
+      
+      try {
+        const res = await fetch(api + '/ra/orders/' + orderId + '/delivered', {
+          method: 'POST',
+          headers
+        });
+        
+        if (res.ok) {
+          alert('Заказ отмечен как доставленный');
+          window.location.href = '/static/ra.html';
+        } else {
+          throw new Error('Ошибка отметки доставки');
+        }
+      } catch (error) {
+        console.error('Error marking order as delivered:', error);
+        alert('Ошибка при отметке доставки');
+      }
+    }
+    
+    // Функция для обратного отсчета
+    function startCountdown(orderId, etaMinutes, acceptedTime) {
+      console.log(`Starting countdown for order ${orderId} with ${etaMinutes} minutes`);
+      
+      const endTime = new Date(acceptedTime).getTime() + (etaMinutes * 60 * 1000);
+      const countdownElement = document.getElementById('delivery-countdown');
+      
+      if (!countdownElement) {
+        console.error('Countdown element not found');
+        return;
+      }
+      
+      const countdownInterval = setInterval(() => {
+        const now = new Date().getTime();
+        const timeLeft = endTime - now;
+        
+        if (timeLeft <= 0) {
+          // Время истекло, автоматически ставим статус "доставлено"
+          clearInterval(countdownInterval);
+          console.log(`Time expired for order ${orderId}, marking as delivered`);
+          
+          // Обновляем отображение
+          countdownElement.innerHTML = '<span style="color: #059669; font-weight: 600;">Время доставки истекло</span>';
+          document.getElementById('order-status').innerHTML = '<span style="color: #059669;">Доставлен</span>';
+          
+          // Автоматически отмечаем как доставленный
+          markDelivered();
+          return;
+        }
+        
+        const minutes = Math.floor(timeLeft / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+        
+        // Обновляем отображение таймера
+        const countdownText = `Время доставки - ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        countdownElement.innerHTML = `<span style="color: #dc2626; font-weight: 600;">${countdownText}</span>`;
+        
+        console.log(`Updated countdown for order ${orderId}: ${countdownText}`);
+      }, 1000);
+      
+      // Сохраняем интервал для возможности его остановки
+      window.countdownIntervals = window.countdownIntervals || {};
+      window.countdownIntervals[orderId] = countdownInterval;
+    }
+    
+    // Функция для остановки обратного отсчета
+    function stopCountdown(orderId) {
+      if (window.countdownIntervals && window.countdownIntervals[orderId]) {
+        clearInterval(window.countdownIntervals[orderId]);
+        delete window.countdownIntervals[orderId];
+      }
+    }
+    
+    // Очищаем интервалы при уходе со страницы
+    window.addEventListener('beforeunload', () => {
+      if (window.countdownIntervals) {
+        Object.keys(window.countdownIntervals).forEach(orderId => {
+          clearInterval(window.countdownIntervals[orderId]);
+        });
+      }
+    });
+    
+    // Глобальные переменные для отзыва
+    let currentRating = 0;
+    
+    // Функция установки рейтинга
+    function setRating(rating) {
+      currentRating = rating;
+      
+      // Обновляем отображение звездочек
+      const stars = document.querySelectorAll('.star');
+      const ratingText = document.getElementById('rating-text');
+      
+      stars.forEach((star, index) => {
+        if (index < rating) {
+          star.classList.add('filled');
+        } else {
+          star.classList.remove('filled');
+        }
+      });
+      
+      // Обновляем текст рейтинга
+      const ratingLabels = {
+        1: 'Плохо',
+        2: 'Неудовлетворительно',
+        3: 'Удовлетворительно',
+        4: 'Хорошо',
+        5: 'Отлично'
+      };
+      
+      ratingText.textContent = ratingLabels[rating] || 'Выберите оценку';
+      
+      // Активируем кнопку отправки
+      const submitBtn = document.querySelector('.feedback-submit');
+      submitBtn.disabled = false;
+    }
+    
+    // Функция отправки отзыва
+    async function submitFeedback() {
+      if (currentRating === 0) {
+        alert('Пожалуйста, выберите оценку');
+        return;
+      }
+      
+      const commentTextarea = document.querySelector('.feedback-comment');
+      const comment = commentTextarea.value.trim();
+      
+      const submitBtn = document.querySelector('.feedback-submit');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Отправка...';
+      
+      try {
+        // Здесь можно добавить API вызов для сохранения отзыва
+        // Пока что просто показываем успешное сообщение
+        
+        // Имитация API вызова
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        alert(`Спасибо за отзыв! Оценка: ${currentRating} звезд`);
+        
+        // Очищаем форму
+        currentRating = 0;
+        const stars = document.querySelectorAll('.star');
+        stars.forEach(star => star.classList.remove('filled'));
+        document.getElementById('rating-text').textContent = 'Выберите оценку';
+        commentTextarea.value = '';
+        submitBtn.disabled = true;
+        
+      } catch (error) {
+        console.error('Error submitting feedback:', error);
+        alert('Ошибка при отправке отзыва: ' + error.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Отправить отзыв';
+      }
+    }
+  </script>
+</body>
+</html> 

@@ -1,0 +1,1277 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Админка</title>
+  <link rel="stylesheet" href="/static/admin.css?v=7" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>Панель администратора</h2>
+    
+    <!-- Quick Actions Grid -->
+    <div class="admin-grid">
+      <div class="admin-section">
+        <h3 id="quickActionsToggle" style="cursor: pointer; user-select: none;">
+          <span id="quickActionsIcon">▼</span> Быстрые действия
+        </h3>
+        <div id="quickActionsContent">
+          <div class="form-group">
+            <label>Добавить ресторан</label>
+            <input id="rname" placeholder="Название ресторана"/>
+            <button id="addR">➕ Добавить</button>
+          </div>
+          
+          <div class="form-group">
+            <label>Создать ресторан с админом</label>
+            <input id="newRestName" placeholder="Название ресторана"/>
+            <input id="newRestUsername" placeholder="@username или ID пользователя"/>
+            <button id="createRestWithAdmin">👥 Создать с админом</button>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+              💡 Подсказка: Если username не найден, попробуйте ввести ID пользователя. 
+              ID можно получить, попросив пользователя написать боту /start
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Рассылка</label>
+            <input id="btext" placeholder="Текст сообщения"/>
+            <button id="sendB">📢 Отправить</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="admin-section">
+        <h3 id="usersToggle" style="cursor: pointer; user-select: none;">
+          <span id="usersIcon">▶</span> Управление пользователями
+        </h3>
+        <div id="usersContent" style="display: none;">
+          <div class="form-group">
+            <label>ID пользователя или @username</label>
+            <input id="uidInput" placeholder="123456 или @username"/>
+          </div>
+          <div class="form-row">
+            <button id="blk">🚫 Заблокировать</button>
+            <button id="unblk">✅ Разблокировать</button>
+          </div>
+          <div class="form-group">
+            <label>Назначить админом ресторана</label>
+            <div class="form-row">
+              <input id="bindRestId" placeholder="ID ресторана"/>
+              <button id="bindRA">👑 Назначить</button>
+            </div>
+          </div>
+          <button id="uload">🔄 Обновить список</button>
+          <div id="ulist"></div>
+        </div>
+      </div>
+       
+       <div class="admin-section">
+         <h3 id="systemToggle" style="cursor: pointer; user-select: none;">
+          <span id="systemIcon">▶</span> Настройки системы
+        </h3>
+        <div id="systemContent" style="display: none;">
+          <div class="form-group">
+            <label>Кодовое слово для входа в админку</label>
+            <div class="form-row">
+              <input id="adminCodeInput" placeholder="Введите новое кодовое слово"/>
+              <button id="updateAdminCode">🔐 Обновить</button>
+            </div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+              💡 Текущее кодовое слово: <span id="currentAdminCode">Загрузка...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+       
+       <div class="admin-section">
+         <h3>Настройки системы</h3>
+         <div class="form-group">
+           <label>Кодовое слово для входа в админку</label>
+           <div class="form-row">
+             <input id="adminCodeInput" placeholder="Введите новое кодовое слово"/>
+             <button id="updateAdminCode">🔐 Обновить</button>
+           </div>
+           <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+             💡 Текущее кодовое слово: <span id="currentAdminCode">Загрузка...</span>
+           </div>
+         </div>
+       </div>
+       
+      <div class="admin-section">
+        <h3 id="collectionsToggle" style="cursor: pointer; user-select: none;">
+          <span id="collectionsIcon">▶</span> Управление подборками
+        </h3>
+        <div id="collectionsContent" style="display: none;">
+          <div class="form-group">
+            <label>Создать подборку</label>
+            <input id="collectionName" placeholder="Название подборки"/>
+            <input id="collectionDescription" placeholder="Описание подборки"/>
+            <input id="collectionImage" placeholder="URL изображения"/>
+            <div class="form-row">
+              <button id="createCollection">📚 Создать подборку</button>
+              <button id="loadCollections">🔄 Обновить список</button>
+            </div>
+          </div>
+          <div id="collectionsList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Restaurants Section -->
+    <div class="admin-section">
+      <h3 id="restaurantsToggle" style="cursor: pointer; user-select: none;">
+        <span id="restaurantsIcon">▶</span> Рестораны
+      </h3>
+      <div id="restaurantsContent" style="display: none;">
+        <div id="list"></div>
+      </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="admin-section">
+      <h3 id="statsToggle" style="cursor: pointer; user-select: none;">
+        <span id="statsIcon">▶</span> Статистика
+      </h3>
+      <div id="statsContent" style="display: none;">
+        <div class="form-row">
+          <button id="statsRefresh">📊 Обновить статистику</button>
+        </div>
+        <div id="statsGlobal"></div>
+        
+        <div class="form-group">
+          <label>Статистика по ресторану</label>
+          <div class="form-row">
+            <select id="statsRest"></select>
+            <button id="statsLoad">📈 Показать</button>
+          </div>
+        </div>
+        <div id="statsByRest"></div>
+      </div>
+    </div>
+
+    <!-- Reviews Section -->
+    <div class="admin-section">
+      <h3 id="reviewsToggle" style="cursor: pointer; user-select: none;">
+        <span id="reviewsIcon">▶</span> Отзывы о ресторанах
+      </h3>
+      <div id="reviewsContent" style="display: none;">
+        <div class="form-group">
+          <label>Фильтр по ресторану</label>
+          <div class="form-row">
+            <select id="revRest"></select>
+            <button id="revLoad">📝 Загрузить</button>
+          </div>
+        </div>
+        <div id="reviews"></div>
+      </div>
+    </div>
+
+    <!-- App Reviews Section -->
+    <div class="admin-section">
+      <h3 id="appReviewsToggle" style="cursor: pointer; user-select: none;">
+        <span id="appReviewsIcon">▶</span> Отзывы о приложении
+      </h3>
+      <div id="appReviewsContent" style="display: none;">
+        <div class="form-group">
+          <button id="appRevLoad">📱 Загрузить отзывы о приложении</button>
+        </div>
+        <div id="appReviews"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const api = location.origin + '/api';
+    const tg = window.Telegram?.WebApp;
+    const q = new URLSearchParams(location.search);
+    const uid = tg?.initDataUnsafe?.user?.id || Number(q.get('uid')) || 0;
+    console.log('DEBUG: uid =', uid);
+    console.log('DEBUG: tg?.initDataUnsafe?.user?.id =', tg?.initDataUnsafe?.user?.id);
+    console.log('DEBUG: q.get("uid") =', q.get('uid'));
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid), 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    console.log('DEBUG: headers =', headers);
+
+    // Функция для показа сообщений
+    function showMessage(text, type = 'info') {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+      messageDiv.textContent = text;
+      
+      // Вставляем сообщение в начало контейнера
+      const container = document.querySelector('.container');
+      container.insertBefore(messageDiv, container.firstChild);
+      
+      // Удаляем сообщение через 5 секунд
+      setTimeout(() => {
+        if (messageDiv.parentNode) {
+          messageDiv.parentNode.removeChild(messageDiv);
+        }
+      }, 5000);
+    }
+
+    async function load() {
+      const res = await fetch(api + '/admin/restaurants', { headers });
+      if (!res.ok) { alert('Нет доступа'); return; }
+      const rs = await res.json();
+      const root = document.getElementById('list');
+      root.innerHTML='';
+      rs.forEach(r => {
+        const el = document.createElement('div');
+        el.className = 'restaurant';
+        el.innerHTML = `
+          <div class="restaurant-item">
+            <div class="restaurant-info">
+              <div class="title">#${r.id} ${r.name}</div>
+              <div class="meta">
+                <span class="status-${r.is_enabled ? 'on' : 'off'}">● ${r.is_enabled ? 'Активен' : 'Неактивен'}</span>
+              </div>
+              <div class="meta">
+                <label>Мин. заказ:</label>
+                <input data-field="delivery_min_sum" value="${r.delivery_min_sum}" style="width:80px"/>
+                <label>Доставка:</label>
+                <input data-field="delivery_fee" value="${r.delivery_fee}" style="width:80px"/>
+                <label>Время (мин):</label>
+                <input data-field="delivery_time_minutes" value="${r.delivery_time_minutes}" style="width:80px"/>
+              </div>
+              <div class="meta">
+                <label>Адрес:</label>
+                <input data-field="address" value="${r.address}" style="width:70%"/>
+              </div>
+              <div class="meta">
+                <label>Телефон:</label>
+                <input data-field="phone" value="${r.phone}" style="width:50%"/>
+              </div>
+              <div class="meta">
+                <label>Описание:</label>
+                <input data-field="description" value="${r.description||''}" style="width:80%"/>
+              </div>
+            </div>
+            <div class="restaurant-actions">
+              <button data-act="save">💾 Сохранить</button>
+              <button data-act="toggle">${r.is_enabled ? '🔴 Выключить' : '🟢 Включить'}</button>
+              <button data-act="del">🗑️ Удалить</button>
+            </div>
+          </div>`;
+        el.querySelector('[data-act="save"]').onclick = async () => {
+          const body = {};
+          el.querySelectorAll('input[data-field]').forEach(inp => {
+            const key = inp.getAttribute('data-field');
+            let val = (inp.value || '').trim();
+            if (['delivery_min_sum','delivery_fee','delivery_time_minutes'].includes(key)) {
+              const n = parseInt(val, 10);
+              if (!Number.isNaN(n)) val = n; else return;
+            }
+            body[key] = val;
+          });
+          const res = await fetch(api + '/admin/restaurants/' + r.id, { method:'PATCH', headers, body: JSON.stringify(body) });
+          if (!res.ok) { alert('Ошибка сохранения'); return; }
+          const data = await res.json().catch(()=>({}));
+          // обновляем локально, чтобы не казалось, что "слетает"
+          if (data.restaurant) Object.assign(r, data.restaurant);
+          load();
+        };
+        el.querySelector('[data-act="toggle"]').onclick = async () => {
+          await fetch(api + '/admin/restaurants/' + r.id + '/status?enabled=' + (!r.is_enabled), { method:'PATCH', headers });
+          load();
+        };
+        el.querySelector('[data-act="del"]').onclick = async () => {
+          if (!confirm('Удалить ресторан #' + r.id + '?')) return;
+          await fetch(api + '/admin/restaurants/' + r.id, { method:'DELETE', headers });
+          load();
+        };
+        root.appendChild(el);
+      });
+    }
+
+    document.getElementById('addR').onclick = async () => {
+      const name = document.getElementById('rname').value.trim();
+      if (!name) return;
+      await fetch(api + '/admin/restaurants', { method:'POST', headers, body: JSON.stringify({ name }) });
+      document.getElementById('rname').value='';
+      load();
+    };
+    
+    document.getElementById('createRestWithAdmin').onclick = async () => {
+      const name = document.getElementById('newRestName').value.trim();
+      const username = document.getElementById('newRestUsername').value.trim();
+      if (!name || !username) {
+        showMessage('Введите название ресторана и username админа', 'error');
+        return;
+      }
+      
+      const button = document.getElementById('createRestWithAdmin');
+      const originalText = button.textContent;
+      button.textContent = '⏳ Создание...';
+      button.disabled = true;
+      
+      try {
+        // Создаем ресторан
+        const restRes = await fetch(api + '/admin/restaurants', { 
+          method:'POST', 
+          headers, 
+          body: JSON.stringify({ name }) 
+        });
+        if (!restRes.ok) {
+          showMessage('Ошибка создания ресторана', 'error');
+          return;
+        }
+        const restaurant = await restRes.json();
+        
+        // Проверяем, является ли введенное значение числом (ID пользователя)
+        let userData;
+        if (/^\d+$/.test(username)) {
+          // Это ID пользователя
+          userData = { user_id: parseInt(username) };
+        } else {
+          // Это username, пытаемся получить ID
+          const userRes = await fetch(api + '/admin/users/resolve-username?username=' + encodeURIComponent(username), { 
+            method:'GET', 
+            headers 
+          });
+          if (!userRes.ok) {
+            showMessage('Пользователь с таким username не найден. Попробуйте ввести ID пользователя или убедитесь, что пользователь взаимодействовал с ботом', 'error');
+            return;
+          }
+          userData = await userRes.json();
+        }
+        
+        // Назначаем пользователя админом ресторана
+        const bindRes = await fetch(api + '/admin/users/bind-admin?user_id=' + userData.user_id + '&restaurant_id=' + restaurant.id, { 
+          method:'POST', 
+          headers 
+        });
+        if (!bindRes.ok) {
+          showMessage('Ошибка назначения админа', 'error');
+          return;
+        }
+        
+        showMessage(`✅ Ресторан "${name}" создан и пользователь ${username} назначен его админом`, 'success');
+        document.getElementById('newRestName').value = '';
+        document.getElementById('newRestUsername').value = '';
+        load();
+        loadUsers();
+      } catch (error) {
+        showMessage('Ошибка: ' + error.message, 'error');
+      } finally {
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    };
+    document.getElementById('sendB').onclick = async () => {
+      const text = document.getElementById('btext').value.trim();
+      if (!text) return;
+      await fetch(api + '/admin/broadcast', { method:'POST', headers, body: JSON.stringify({ text }) });
+      document.getElementById('btext').value='';
+      alert('Отправлено в канал администратора');
+    };
+
+    async function loadUsers() {
+      const res = await fetch(api + '/admin/users?t=' + Date.now(), { headers });
+      if (!res.ok) return;
+      const us = await res.json();
+      const root = document.getElementById('ulist');
+      root.innerHTML = '';
+      us.forEach(u => {
+        const el = document.createElement('div');
+        el.className = 'restaurant';
+        el.innerHTML = `
+          <div class="restaurant-item">
+            <div class="restaurant-info">
+              <div class="title">👤 Пользователь #${u.id}${u.username ? `<span class="username">@${u.username}</span>` : ''}</div>
+              <div class="meta">
+                <span class="status-${u.is_blocked ? 'off' : 'on'}">● ${u.is_blocked ? 'Заблокирован' : 'Активен'}</span>
+                ${u.restaurant_admin_of ? `👑 Админ ресторана #${u.restaurant_admin_of}` : ''}
+              </div>
+              ${u.username ? `<div class="meta"><span class="username-info">@${u.username}</span></div>` : ''}
+              ${u.name ? `<div class="meta">Имя: ${u.name}</div>` : ''}
+              ${u.phone ? `<div class="meta">Телефон: ${u.phone}</div>` : ''}
+            </div>
+          </div>`;
+        root.appendChild(el);
+      });
+    }
+
+    async function resolveUserId(input) {
+      const value = input.trim();
+      if (/^\d+$/.test(value)) {
+        return parseInt(value);
+      } else if (value.startsWith('@')) {
+        const res = await fetch(api + '/admin/users/resolve-username?username=' + encodeURIComponent(value), { headers });
+        if (!res.ok) {
+          throw new Error('Пользователь с таким username не найден');
+        }
+        const data = await res.json();
+        return data.user_id;
+      } else {
+        throw new Error('Введите ID пользователя или @username');
+      }
+    }
+
+    document.getElementById('blk').onclick = async () => {
+      try {
+        const input = (document.getElementById('uidInput').value||'').trim();
+        if (!input) return alert('Введите ID или @username');
+        const id = await resolveUserId(input);
+        await fetch(api + '/admin/users/block?user_id=' + id + '&block=true', { method:'POST', headers });
+        loadUsers();
+        alert('Пользователь заблокирован');
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+    document.getElementById('unblk').onclick = async () => {
+      try {
+        const input = (document.getElementById('uidInput').value||'').trim();
+        if (!input) return alert('Введите ID или @username');
+        const id = await resolveUserId(input);
+        await fetch(api + '/admin/users/block?user_id=' + id + '&block=false', { method:'POST', headers });
+        loadUsers();
+        alert('Пользователь разблокирован');
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+    document.getElementById('uload').onclick = loadUsers;
+    document.getElementById('bindRA').onclick = async () => {
+      try {
+        const input = (document.getElementById('uidInput').value||'').trim();
+        const rid = parseInt((document.getElementById('bindRestId').value||'').trim(),10);
+        if (!input || !rid) return alert('Введите user_id/@username и restaurant_id');
+        const id = await resolveUserId(input);
+        await fetch(api + '/admin/users/bind-admin?user_id=' + id + '&restaurant_id=' + rid, { method:'POST', headers });
+        alert('Назначен админом ресторана #' + rid);
+        loadUsers();
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+
+    load();
+    loadUsers();
+
+    async function loadStatsGlobal() {
+      const res = await fetch(api + '/admin/stats?t=' + Date.now(), { headers });
+      if (!res.ok) return;
+      const s = await res.json();
+      const el = document.getElementById('statsGlobal');
+      el.innerHTML = `
+        <div class="stats-card">
+          <div class="title">📊 Общая статистика</div>
+          <div class="meta">Сегодня: ${s.today.orders} заказов на сумму ${s.today.sum} ₽</div>
+          <div class="meta">Отменено: ${s.today.cancelled} | Изменено: ${s.today.modified}</div>
+          <div class="meta">Месяц: ${s.month.orders} заказов на сумму ${s.month.sum} ₽</div>
+          <div class="meta">Отменено: ${s.month.cancelled} | Изменено: ${s.month.modified}</div>
+        </div>`;
+    }
+
+    async function populateRestaurantsSelect() {
+      const res = await fetch(api + '/admin/restaurants?t=' + Date.now(), { headers });
+      if (!res.ok) return;
+      const rs = await res.json();
+      const sel1 = document.getElementById('statsRest');
+      const sel2 = document.getElementById('revRest');
+      sel1.innerHTML = '';
+      sel2.innerHTML = '<option value="">Все</option>';
+      rs.forEach(r => {
+        const o1 = document.createElement('option'); o1.value = r.id; o1.textContent = `#${r.id} ${r.name}`; sel1.appendChild(o1);
+        const o2 = document.createElement('option'); o2.value = r.id; o2.textContent = `#${r.id} ${r.name}`; sel2.appendChild(o2);
+      });
+    }
+
+    async function loadStatsByRestaurant() {
+      const rid = Number(document.getElementById('statsRest').value);
+      if (!rid) { document.getElementById('statsByRest').textContent = ''; return; }
+      const res = await fetch(api + '/admin/stats/by-restaurant?restaurant_id=' + rid + '&t=' + Date.now(), { headers });
+      if (!res.ok) return;
+      const s = await res.json();
+      document.getElementById('statsByRest').innerHTML = `
+        <div class="stats-card">
+          <div class="title">📈 Статистика ресторана #${rid}</div>
+          <div class="meta">Сегодня: ${s.today.orders} заказов на сумму ${s.today.sum} ₽</div>
+          <div class="meta">Отменено: ${s.today.cancelled} | Изменено: ${s.today.modified}</div>
+          <div class="meta">Месяц: ${s.month.orders} заказов на сумму ${s.month.sum} ₽</div>
+          <div class="meta">Отменено: ${s.month.cancelled} | Изменено: ${s.month.modified}</div>
+        </div>`;
+    }
+
+    async function loadReviews() {
+      const rid = document.getElementById('revRest').value;
+      const url = rid ? (api + '/admin/reviews?restaurant_id=' + rid + '&t=' + Date.now()) : (api + '/admin/reviews?t=' + Date.now());
+      const res = await fetch(url, { headers });
+      if (!res.ok) return;
+      const data = await res.json();
+      // fetch restaurants to map id -> name
+      const rs = await (await fetch(api + '/admin/restaurants?t=' + Date.now(), { headers })).json();
+      const idToName = new Map(rs.map(r => [r.id, r.name]));
+      const root = document.getElementById('reviews');
+      root.innerHTML = '';
+      if (!data.length) { root.innerHTML = '<div class="meta">Нет отзывов</div>'; return; }
+      data.forEach(r => {
+        const el = document.createElement('div');
+        el.className = 'review-item';
+        const rname = idToName.get(r.restaurant_id) || ('Ресторан ' + r.restaurant_id);
+        el.innerHTML = `
+          <div class="title">⭐ ${r.rating}/5 · ${rname}</div>
+          <div class="meta">👤 Пользователь #${r.user_id} · 📦 Заказ #${r.order_id}</div>
+          <div class="meta">💬 ${(r.comment||'').replace(/</g,'&lt;')}</div>
+          <button data-id="${r.id}" style="margin-top: 8px;">🗑️ Удалить</button>`;
+        el.querySelector('button').onclick = async () => {
+          await fetch(api + '/admin/reviews/' + r.id, { method:'DELETE', headers });
+          loadReviews();
+        };
+        root.appendChild(el);
+      });
+    }
+
+    // Admin Code Management
+    async function loadAdminCode() {
+      try {
+        const res = await fetch(api + '/admin/admin-code', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          const currentCodeEl = document.getElementById('currentAdminCode');
+          currentCodeEl.textContent = data.admin_code || 'Не установлено';
+        }
+      } catch (error) {
+        console.error('Error loading admin code:', error);
+      }
+    }
+
+    document.getElementById('updateAdminCode').onclick = async () => {
+      const newCode = document.getElementById('adminCodeInput').value.trim();
+      if (!newCode) {
+        showMessage('Введите новое кодовое слово', 'error');
+        return;
+      }
+      
+      const button = document.getElementById('updateAdminCode');
+      const originalText = button.textContent;
+      button.textContent = '⏳ Обновление...';
+      button.disabled = true;
+      
+      try {
+        const res = await fetch(api + '/admin/admin-code', { 
+          method: 'POST', 
+          headers, 
+          body: JSON.stringify({ admin_code: newCode }) 
+        });
+        
+        if (res.ok) {
+          showMessage('✅ Кодовое слово успешно обновлено', 'success');
+          document.getElementById('adminCodeInput').value = '';
+          loadAdminCode();
+        } else {
+          const error = await res.json();
+          showMessage('❌ Ошибка: ' + (error.detail || 'Неизвестная ошибка'), 'error');
+        }
+      } catch (error) {
+        showMessage('❌ Ошибка: ' + error.message, 'error');
+      } finally {
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    };
+
+    document.getElementById('statsLoad').onclick = loadStatsByRestaurant;
+    document.getElementById('statsRefresh').onclick = loadStatsGlobal;
+    document.getElementById('revLoad').onclick = loadReviews;
+
+    // Collections Management
+    async function loadCollections() {
+      try {
+        const res = await fetch(api + '/collections', { headers });
+        if (!res.ok) return;
+        const collections = await res.json();
+        
+        const root = document.getElementById('collectionsList');
+        root.innerHTML = '';
+        
+        if (!collections.length) {
+          root.innerHTML = '<div class="meta">Нет подборок</div>';
+          return;
+        }
+        
+        collections.forEach(collection => {
+          const el = document.createElement('div');
+          el.className = 'collection-item';
+          el.innerHTML = `
+            <div class="title">📚 ${collection.name}</div>
+            <div class="meta">${collection.description || 'Без описания'}</div>
+            <div class="meta">Элементов: ${collection.items_count} | Статус: ${collection.is_enabled ? '✅ Включена' : '❌ Выключена'}</div>
+            <div class="form-row" style="margin-top: 8px;">
+              <button data-id="${collection.id}" data-act="toggle">${collection.is_enabled ? '❌ Выключить' : '✅ Включить'}</button>
+              <button data-id="${collection.id}" data-act="edit">✏️ Редактировать</button>
+              <button data-id="${collection.id}" data-act="items">📋 Элементы</button>
+              <button data-id="${collection.id}" data-act="del">🗑️ Удалить</button>
+            </div>
+          `;
+          
+          el.querySelector('[data-act="toggle"]').onclick = async () => {
+            await fetch(api + '/collections/' + collection.id, { 
+              method: 'PATCH', 
+              headers, 
+              body: JSON.stringify({ is_enabled: !collection.is_enabled }) 
+            });
+            loadCollections();
+          };
+          
+          el.querySelector('[data-act="edit"]').onclick = () => {
+            showEditCollectionModal(collection);
+          };
+          
+          el.querySelector('[data-act="items"]').onclick = () => {
+            showCollectionItemsModal(collection.id, collection.name);
+          };
+          
+          el.querySelector('[data-act="del"]').onclick = async () => {
+            if (!confirm(`Удалить подборку "${collection.name}"?`)) return;
+            await fetch(api + '/collections/' + collection.id, { method: 'DELETE', headers });
+            loadCollections();
+          };
+          
+          root.appendChild(el);
+        });
+      } catch (error) {
+        console.error('Error loading collections:', error);
+        showMessage('Ошибка загрузки подборок', 'error');
+      }
+    }
+
+         function showEditCollectionModal(collection) {
+       const modal = document.createElement('div');
+       modal.className = 'modal';
+       modal.innerHTML = `
+         <div class="modal-content">
+           <h3>Редактировать подборку</h3>
+           <div class="form-group">
+             <label>Название</label>
+             <input id="editName" value="${collection.name}" placeholder="Название подборки"/>
+           </div>
+           <div class="form-group">
+             <label>Описание</label>
+             <input id="editDescription" value="${collection.description}" placeholder="Описание подборки"/>
+           </div>
+           <div class="form-group">
+             <label>Изображение</label>
+             <div class="file-upload">
+               <input type="file" id="editImageFile" accept="image/*" />
+               <div class="file-upload-label">
+                 Загрузить изображение
+               </div>
+             </div>
+             <input id="editImage" value="${collection.image}" placeholder="URL изображения или загрузите файл выше"/>
+             <div id="editImagePreview" style="margin-top: 8px;">
+               ${collection.image ? `<img src="${collection.image}" class="image-preview" />` : ''}
+             </div>
+           </div>
+           <div class="form-group">
+             <label>Порядок сортировки</label>
+             <input id="editSortOrder" type="number" value="${collection.sort_order}" placeholder="0"/>
+           </div>
+           <div class="form-row">
+             <button id="saveEdit">💾 Сохранить</button>
+             <button id="cancelEdit">❌ Отмена</button>
+           </div>
+         </div>
+       `;
+      
+             document.body.appendChild(modal);
+       
+       // Обработчик загрузки изображения для редактирования подборки
+       document.getElementById('editImageFile').addEventListener('change', async function() {
+         const file = this.files[0];
+         if (!file) return;
+         
+         if (!file.type.startsWith('image/')) {
+           showMessage('Выберите файл изображения', 'error');
+           return;
+         }
+         
+         const formData = new FormData();
+         formData.append('image', file);
+         
+         try {
+           const response = await fetch(api + '/collections/upload-image', {
+             method: 'POST',
+             headers: { 'X-Telegram-User-Id': uid },
+             body: formData
+           });
+           
+           if (response.ok) {
+             const result = await response.json();
+             document.getElementById('editImage').value = result.image_url;
+             
+             // Показываем превью
+             const preview = document.getElementById('editImagePreview');
+             preview.innerHTML = `<img src="${result.image_url}" class="image-preview" />`;
+             
+             showMessage('Изображение загружено', 'success');
+           } else {
+             showMessage('Ошибка загрузки изображения', 'error');
+           }
+         } catch (error) {
+           console.error('Ошибка загрузки:', error);
+           showMessage('Ошибка загрузки изображения', 'error');
+         }
+       });
+       
+       document.getElementById('saveEdit').onclick = async () => {
+        const name = document.getElementById('editName').value.trim();
+        const description = document.getElementById('editDescription').value.trim();
+        const image = document.getElementById('editImage').value.trim();
+        const sort_order = parseInt(document.getElementById('editSortOrder').value) || 0;
+        
+        if (!name) {
+          showMessage('Введите название подборки', 'error');
+          return;
+        }
+        
+        try {
+          await fetch(api + '/collections/' + collection.id, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ name, description, image, sort_order })
+          });
+          document.body.removeChild(modal);
+          loadCollections();
+          showMessage('Подборка обновлена', 'success');
+        } catch (error) {
+          showMessage('Ошибка обновления подборки', 'error');
+        }
+      };
+      
+      document.getElementById('cancelEdit').onclick = () => {
+        document.body.removeChild(modal);
+      };
+    }
+
+    function showCollectionItemsModal(collectionId, collectionName) {
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 800px;">
+          <h3>Элементы подборки: ${collectionName}</h3>
+          <div class="form-group">
+            <label>Добавить элемент</label>
+            <select id="itemType">
+              <option value="restaurant">Ресторан</option>
+              <option value="dish">Блюдо</option>
+            </select>
+            <select id="restaurantSelect" style="display: none;">
+              <option value="">Выберите ресторан</option>
+            </select>
+            <div id="dishSelectContainer" style="display: none;">
+              <label>Выберите блюдо</label>
+              <select id="dishSelect">
+                <option value="">Сначала выберите ресторан</option>
+              </select>
+            </div>
+            <input id="itemTitle" placeholder="Заголовок"/>
+            <input id="itemSubtitle" placeholder="Подзаголовок"/>
+            <div class="form-group">
+              <label>Изображение</label>
+              <div class="file-upload">
+                <input type="file" id="itemImageFile" accept="image/*" />
+                <div class="file-upload-label">
+                  Загрузить изображение
+                </div>
+              </div>
+              <input id="itemImage" placeholder="URL изображения или загрузите файл выше"/>
+              <div id="imagePreview" style="margin-top: 8px;"></div>
+            </div>
+            <div class="form-row">
+              <button id="addItem">➕ Добавить элемент</button>
+              <button id="loadItems">🔄 Обновить список</button>
+            </div>
+          </div>
+          <div id="itemsList"></div>
+          <div class="form-row">
+            <button id="closeItems">❌ Закрыть</button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Добавляем обработчик события для изменения типа элемента
+      document.getElementById('itemType').addEventListener('change', onItemTypeChange);
+      
+      // Функции для работы с выпадающими списками
+      async function loadRestaurants() {
+        try {
+          const res = await fetch(api + '/collections/restaurants', { headers });
+          if (!res.ok) return;
+          const restaurants = await res.json();
+          
+          const select = document.getElementById('restaurantSelect');
+          select.innerHTML = '<option value="">Выберите ресторан</option>';
+          
+          restaurants.forEach(restaurant => {
+            const option = document.createElement('option');
+            option.value = restaurant.id;
+            option.textContent = restaurant.name;
+            select.appendChild(option);
+          });
+        } catch (error) {
+          console.error('Error loading restaurants:', error);
+        }
+      }
+      
+      async function loadDishes(restaurantId) {
+        try {
+          console.log('loadDishes called with restaurantId:', restaurantId);
+          const url = restaurantId 
+            ? api + '/collections/dishes?restaurant_id=' + restaurantId
+            : api + '/collections/dishes';
+          
+          console.log('Fetching dishes from:', url);
+          const res = await fetch(url, { headers });
+          if (!res.ok) {
+            console.error('Failed to load dishes, status:', res.status);
+            return;
+          }
+          const dishes = await res.json();
+          console.log('Loaded dishes:', dishes);
+          
+          const select = document.getElementById('dishSelect');
+          console.log('dishSelect element:', select);
+          select.innerHTML = '<option value="">Выберите блюдо</option>';
+          
+          dishes.forEach(dish => {
+            const option = document.createElement('option');
+            option.value = dish.id;
+            option.textContent = `${dish.name} (${dish.restaurant_name}) - ${dish.price} ₽`;
+            select.appendChild(option);
+          });
+          console.log('Dishes loaded into select');
+        } catch (error) {
+          console.error('Error loading dishes:', error);
+        }
+      }
+      
+      function onItemTypeChange() {
+        const itemType = document.getElementById('itemType').value;
+        const restaurantSelect = document.getElementById('restaurantSelect');
+        const dishSelectContainer = document.getElementById('dishSelectContainer');
+        const dishSelect = document.getElementById('dishSelect');
+        
+        console.log('onItemTypeChange called with type:', itemType);
+        console.log('restaurantSelect:', restaurantSelect);
+        console.log('dishSelectContainer:', dishSelectContainer);
+        console.log('dishSelect:', dishSelect);
+        
+        if (!dishSelect) {
+          console.error('dishSelect element not found!');
+          return;
+        }
+        
+        // Скрываем все селекты
+        restaurantSelect.style.display = 'none';
+        dishSelectContainer.style.display = 'none';
+        
+        if (itemType === 'restaurant') {
+          restaurantSelect.style.display = 'block';
+          loadRestaurants();
+          // Убираем обработчик изменения ресторана
+          restaurantSelect.onchange = null;
+        } else if (itemType === 'dish') {
+          restaurantSelect.style.display = 'block';
+          dishSelectContainer.style.display = 'block';
+          console.log('Setting dishSelectContainer display to block');
+          loadRestaurants();
+          // Очищаем список блюд
+          dishSelect.innerHTML = '<option value="">Сначала выберите ресторан</option>';
+          
+          // Добавляем обработчик изменения ресторана для блюд
+          restaurantSelect.onchange = function() {
+            console.log('Restaurant changed to:', this.value);
+            const dishSelect = document.getElementById('dishSelect');
+            if (this.value) {
+              loadDishes(this.value);
+            } else {
+              dishSelect.innerHTML = '<option value="">Сначала выберите ресторан</option>';
+            }
+          };
+        }
+      }
+      
+      // Обработчик загрузки изображения
+      document.getElementById('itemImageFile').addEventListener('change', async function() {
+        const file = this.files[0];
+        if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
+          showMessage('Выберите файл изображения', 'error');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        try {
+          const response = await fetch(api + '/collections/upload-image', {
+            method: 'POST',
+            headers: { 'X-Telegram-User-Id': uid },
+            body: formData
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            document.getElementById('itemImage').value = result.image_url;
+            
+            // Показываем превью
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = `<img src="${result.image_url}" class="image-preview" />`;
+            
+            showMessage('Изображение загружено', 'success');
+          } else {
+            showMessage('Ошибка загрузки изображения', 'error');
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки:', error);
+          showMessage('Ошибка загрузки изображения', 'error');
+        }
+      });
+      
+      async function loadItems() {
+        try {
+          const res = await fetch(api + '/collections/' + collectionId + '/items', { headers });
+          if (!res.ok) return;
+          const items = await res.json();
+          
+          const root = document.getElementById('itemsList');
+          root.innerHTML = '';
+          
+          if (!items.length) {
+            root.innerHTML = '<div class="meta">Нет элементов</div>';
+            return;
+          }
+          
+          items.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'item-element';
+            el.innerHTML = `
+              <div class="title">${item.title}</div>
+              <div class="meta">${item.subtitle || 'Без подзаголовка'} | Тип: ${item.item_type} | ID: ${item.item_id}</div>
+              <div class="meta">Статус: ${item.is_enabled ? '✅ Включен' : '❌ Выключен'} | Порядок: ${item.sort_order}</div>
+              <div class="form-row" style="margin-top: 8px;">
+                <button data-id="${item.id}" data-act="toggle">${item.is_enabled ? '❌ Выключить' : '✅ Включить'}</button>
+                <button data-id="${item.id}" data-act="edit">✏️ Редактировать</button>
+                <button data-id="${item.id}" data-act="del">🗑️ Удалить</button>
+              </div>
+            `;
+            
+            el.querySelector('[data-act="toggle"]').onclick = async () => {
+              await fetch(api + '/collections/' + collectionId + '/items/' + item.id, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ is_enabled: !item.is_enabled })
+              });
+              loadItems();
+            };
+            
+            el.querySelector('[data-act="edit"]').onclick = () => {
+              showEditItemModal(collectionId, item, loadItems);
+            };
+            
+            el.querySelector('[data-act="del"]').onclick = async () => {
+              if (!confirm(`Удалить элемент "${item.title}"?`)) return;
+              await fetch(api + '/collections/' + collectionId + '/items/' + item.id, { method: 'DELETE', headers });
+              loadItems();
+            };
+            
+            root.appendChild(el);
+          });
+        } catch (error) {
+          console.error('Error loading items:', error);
+          showMessage('Ошибка загрузки элементов', 'error');
+        }
+      }
+      
+      document.getElementById('addItem').onclick = async () => {
+        const item_type = document.getElementById('itemType').value;
+        let item_id = 0;
+        
+        if (item_type === 'restaurant') {
+          item_id = parseInt(document.getElementById('restaurantSelect').value);
+        } else if (item_type === 'dish') {
+          item_id = parseInt(document.getElementById('dishSelect').value);
+        }
+        
+        const title = document.getElementById('itemTitle').value.trim();
+        const subtitle = document.getElementById('itemSubtitle').value.trim();
+        const image = document.getElementById('itemImage').value.trim();
+        
+        if (!item_id || !title) {
+          showMessage('Выберите элемент и введите заголовок', 'error');
+          return;
+        }
+        
+        try {
+          await fetch(api + '/collections/' + collectionId + '/items', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ collection_id: collectionId, item_type, item_id, title, subtitle, image })
+          });
+          
+          // Очищаем поля
+          document.getElementById('restaurantSelect').value = '';
+          document.getElementById('dishSelect').value = '';
+          document.getElementById('itemTitle').value = '';
+          document.getElementById('itemSubtitle').value = '';
+          document.getElementById('itemImage').value = '';
+          
+          loadItems();
+          showMessage('Элемент добавлен', 'success');
+        } catch (error) {
+          showMessage('Ошибка добавления элемента', 'error');
+        }
+      };
+      
+      document.getElementById('loadItems').onclick = loadItems;
+      document.getElementById('closeItems').onclick = () => {
+        document.body.removeChild(modal);
+      };
+      
+      // Инициализация при открытии
+      onItemTypeChange();
+      loadItems();
+    }
+
+         function showEditItemModal(collectionId, item, reloadCallback) {
+       const modal = document.createElement('div');
+       modal.className = 'modal';
+       modal.innerHTML = `
+         <div class="modal-content">
+           <h3>Редактировать элемент</h3>
+           <div class="form-group">
+             <label>Заголовок</label>
+             <input id="editItemTitle" value="${item.title}" placeholder="Заголовок"/>
+           </div>
+           <div class="form-group">
+             <label>Подзаголовок</label>
+             <input id="editItemSubtitle" value="${item.subtitle}" placeholder="Подзаголовок"/>
+           </div>
+           <div class="form-group">
+             <label>Изображение</label>
+             <div class="file-upload">
+               <input type="file" id="editItemImageFile" accept="image/*" />
+               <div class="file-upload-label">
+                 Загрузить изображение
+               </div>
+             </div>
+             <input id="editItemImage" value="${item.image}" placeholder="URL изображения или загрузите файл выше"/>
+             <div id="editItemImagePreview" style="margin-top: 8px;">
+               ${item.image ? `<img src="${item.image}" class="image-preview" />` : ''}
+             </div>
+           </div>
+           <div class="form-group">
+             <label>Порядок сортировки</label>
+             <input id="editItemSortOrder" type="number" value="${item.sort_order}" placeholder="0"/>
+           </div>
+           <div class="form-row">
+             <button id="saveItemEdit">💾 Сохранить</button>
+             <button id="cancelItemEdit">❌ Отмена</button>
+           </div>
+         </div>
+       `;
+      
+             document.body.appendChild(modal);
+       
+       // Обработчик загрузки изображения для редактирования элемента
+       document.getElementById('editItemImageFile').addEventListener('change', async function() {
+         const file = this.files[0];
+         if (!file) return;
+         
+         if (!file.type.startsWith('image/')) {
+           showMessage('Выберите файл изображения', 'error');
+           return;
+         }
+         
+         const formData = new FormData();
+         formData.append('image', file);
+         
+         try {
+           const response = await fetch(api + '/collections/upload-image', {
+             method: 'POST',
+             headers: { 'X-Telegram-User-Id': uid },
+             body: formData
+           });
+           
+           if (response.ok) {
+             const result = await response.json();
+             document.getElementById('editItemImage').value = result.image_url;
+             
+             // Показываем превью
+             const preview = document.getElementById('editItemImagePreview');
+             preview.innerHTML = `<img src="${result.image_url}" class="image-preview" />`;
+             
+             showMessage('Изображение загружено', 'success');
+           } else {
+             showMessage('Ошибка загрузки изображения', 'error');
+           }
+         } catch (error) {
+           console.error('Ошибка загрузки:', error);
+           showMessage('Ошибка загрузки изображения', 'error');
+         }
+       });
+       
+       document.getElementById('saveItemEdit').onclick = async () => {
+        const title = document.getElementById('editItemTitle').value.trim();
+        const subtitle = document.getElementById('editItemSubtitle').value.trim();
+        const image = document.getElementById('editItemImage').value.trim();
+        const sort_order = parseInt(document.getElementById('editItemSortOrder').value) || 0;
+        
+        if (!title) {
+          showMessage('Введите заголовок', 'error');
+          return;
+        }
+        
+        try {
+          await fetch(api + '/collections/' + collectionId + '/items/' + item.id, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ title, subtitle, image, sort_order })
+          });
+          document.body.removeChild(modal);
+          reloadCallback();
+          showMessage('Элемент обновлен', 'success');
+        } catch (error) {
+          showMessage('Ошибка обновления элемента', 'error');
+        }
+      };
+      
+      document.getElementById('cancelItemEdit').onclick = () => {
+        document.body.removeChild(modal);
+      };
+    }
+
+    // Загрузка отзывов о приложении
+    async function loadAppReviews() {
+      try {
+        const res = await fetch(api + '/app-reviews', { headers });
+        if (!res.ok) {
+          document.getElementById('appReviews').innerHTML = '<div class="meta">Ошибка загрузки</div>';
+          return;
+        }
+        const data = await res.json();
+        const root = document.getElementById('appReviews');
+        root.innerHTML = '';
+        
+        if (!data.reviews || !data.reviews.length) {
+          root.innerHTML = '<div class="meta">Отзывов о приложении нет</div>';
+          return;
+        }
+        
+        data.reviews.forEach(r => {
+          const el = document.createElement('div');
+          el.className = 'restaurant';
+          const stars = '⭐'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+          const date = new Date(r.created_at).toLocaleDateString('ru-RU');
+          el.innerHTML = `
+            <div class="title">Пользователь #${r.user_id} - ${stars}</div>
+            <div class="meta">Дата: ${date}</div>
+            ${r.comment ? `<div class="meta">Комментарий: ${r.comment}</div>` : ''}
+          `;
+          root.appendChild(el);
+        });
+      } catch (error) {
+        console.error('Ошибка загрузки отзывов о приложении:', error);
+        document.getElementById('appReviews').innerHTML = '<div class="meta">Ошибка загрузки</div>';
+      }
+    }
+
+    // Event listeners for collections
+    document.getElementById('createCollection').onclick = async () => {
+      const name = document.getElementById('collectionName').value.trim();
+      const description = document.getElementById('collectionDescription').value.trim();
+      const image = document.getElementById('collectionImage').value.trim();
+      
+      if (!name) {
+        showMessage('Введите название подборки', 'error');
+        return;
+      }
+      
+      try {
+        await fetch(api + '/collections', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ name, description, image })
+        });
+        
+        // Очищаем поля
+        document.getElementById('collectionName').value = '';
+        document.getElementById('collectionDescription').value = '';
+        document.getElementById('collectionImage').value = '';
+        
+        loadCollections();
+        showMessage('Подборка создана', 'success');
+      } catch (error) {
+        showMessage('Ошибка создания подборки', 'error');
+      }
+    };
+    
+    document.getElementById('loadCollections').onclick = loadCollections;
+    document.getElementById('appRevLoad').onclick = loadAppReviews;
+
+    // Функции для сворачивания/разворачивания секций
+    function toggleSection(contentId, iconId) {
+      const content = document.getElementById(contentId);
+      const icon = document.getElementById(iconId);
+      
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+      } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+      }
+    }
+    
+    // Обработчики для сворачивания секций
+    document.getElementById('quickActionsToggle').onclick = () => {
+      toggleSection('quickActionsContent', 'quickActionsIcon');
+    };
+    
+    document.getElementById('usersToggle').onclick = () => {
+      toggleSection('usersContent', 'usersIcon');
+    };
+    
+    document.getElementById('systemToggle').onclick = () => {
+      toggleSection('systemContent', 'systemIcon');
+    };
+    
+    document.getElementById('collectionsToggle').onclick = () => {
+      toggleSection('collectionsContent', 'collectionsIcon');
+    };
+    
+    document.getElementById('restaurantsToggle').onclick = () => {
+      toggleSection('restaurantsContent', 'restaurantsIcon');
+    };
+    
+    document.getElementById('statsToggle').onclick = () => {
+      toggleSection('statsContent', 'statsIcon');
+    };
+    
+    document.getElementById('reviewsToggle').onclick = () => {
+      toggleSection('reviewsContent', 'reviewsIcon');
+    };
+    
+    document.getElementById('appReviewsToggle').onclick = () => {
+      toggleSection('appReviewsContent', 'appReviewsIcon');
+    };
+
+    // первичная инициализация
+    load();
+    loadUsers();
+    loadStatsGlobal();
+    populateRestaurantsSelect().then(() => { loadStatsByRestaurant(); });
+    loadReviews();
+    loadAdminCode();
+    loadCollections();
+  </script>
+</body>
+</html>
+

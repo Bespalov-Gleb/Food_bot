@@ -1,0 +1,1268 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Заказы ресторана</title>
+  <link rel="stylesheet" href="/static/styles.v23.css?v=32" />
+  <style>
+    .admin-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    
+    .admin-btn {
+      padding: 10px 12px;
+      background: #dc2626;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    
+    .admin-btn:hover {
+      background: #b91c1c;
+      transform: translateY(-1px);
+    }
+    
+    .order-item {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .order-id {
+      font-weight: 600;
+      color: #1e293b;
+    }
+    
+    .order-status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .status-sent { background: #fef3c7; color: #92400e; }
+    .status-accepted { background: #d1fae5; color: #065f46; }
+    .status-delivered { background: #dbeafe; color: #1e40af; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+    .status-modified { background: #f3e8ff; color: #7c3aed; }
+    
+    .order-details {
+      font-size: 13px;
+      color: #64748b;
+    }
+    
+    .order-items {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .order-actions {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+     
+    .order-actions button {
+      padding: 8px 16px;
+      background: white;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 32px;
+    }
+     
+    .order-actions button.accept {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+     
+    .order-actions button.accept:hover {
+      background: #059669;
+    }
+     
+    .order-actions button.delivered:hover {
+      background: #2563eb;
+    }
+
+    /* Модальное окно для обработки заказа */
+    .order-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    
+    .order-modal {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      position: relative;
+      z-index: 10000;
+    }
+    
+    .order-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    
+    .order-modal-close:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .order-modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 20px;
+      padding-right: 40px;
+    }
+    
+    .order-details-section {
+      margin-bottom: 20px;
+    }
+    
+    .order-detail-item {
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #374151;
+    }
+    
+    .order-detail-label {
+      font-weight: 500;
+      color: #6b7280;
+    }
+    
+    .order-actions-section {
+      margin-bottom: 20px;
+    }
+    
+    .action-option {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .action-option:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+    
+    .action-option.selected {
+      background: #f0f9ff;
+      border-color: #3b82f6;
+    }
+    
+    .action-option input[type="radio"] {
+      margin-right: 12px;
+      width: 18px;
+      height: 18px;
+      accent-color: #3b82f6;
+    }
+    
+    .action-option-label {
+      flex: 1;
+      font-size: 14px;
+      color: #374151;
+    }
+    
+    .order-modal-submit {
+      width: 100%;
+      padding: 16px;
+      background: #dc2626;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .order-modal-submit:hover {
+      background: #b91c1c;
+    }
+    
+    .order-modal-submit:disabled {
+      background: #d1d5db;
+      cursor: not-allowed;
+    }
+    
+    /* Стили для изменения заказа */
+    .order-items-edit-section {
+      margin-bottom: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      background: #f9fafb;
+    }
+    
+    .order-items-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .order-item-edit {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      background: white;
+      transition: all 0.2s ease;
+    }
+    
+    .order-item-edit.modified {
+      border-color: #dc2626;
+      background: #fef2f2;
+      box-shadow: 0 0 0 1px #dc2626;
+    }
+    
+    .item-info {
+      flex: 1;
+      margin-right: 16px;
+    }
+    
+    .item-name {
+      display: block;
+      font-weight: 500;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    
+    .item-price {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .item-quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid #d1d5db;
+      background: white;
+      color: #374151;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    
+    .qty-btn:hover {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+    }
+    
+    .qty-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .qty-input {
+      width: 50px;
+      height: 32px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .qty-input:focus {
+      outline: none;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .modify-comment-section {
+      margin-bottom: 20px;
+    }
+    
+    .comment-label {
+      display: block;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    
+    .modify-comment {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+    }
+    
+    .modify-comment:focus {
+      outline: none;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .comment-note {
+      font-size: 12px;
+      color: #dc2626;
+      margin-top: 4px;
+      font-style: italic;
+    }
+    
+    .modify-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .modify-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .modify-cancel {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .modify-cancel:hover {
+      background: #e5e7eb;
+    }
+    
+    .modify-save {
+      background: #dc2626;
+      color: white;
+    }
+    
+    .modify-save:hover {
+      background: #b91c1c;
+    }
+    
+    .modify-save:disabled {
+      background: #d1d5db;
+      cursor: not-allowed;
+    }
+    
+    /* Модальное окно для отмены заказа */
+    .cancel-warning {
+      display: flex;
+      align-items: center;
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      color: #92400e;
+    }
+    
+    .warning-icon {
+      font-size: 24px;
+      margin-right: 12px;
+    }
+    
+    .warning-text {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .cancel-comment-section {
+      margin-bottom: 20px;
+    }
+    
+    .cancel-comment {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 100px;
+      font-family: inherit;
+    }
+    
+    .cancel-comment:focus {
+      outline: none;
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .cancel-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .cancel-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .cancel-back {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .cancel-back:hover {
+      background: #e5e7eb;
+    }
+    
+    .cancel-confirm {
+      background: #dc2626;
+      color: white;
+    }
+    
+    .cancel-confirm:hover {
+      background: #b91c1c;
+    }
+    
+    .cancel-confirm:disabled {
+      background: #d1d5db;
+      cursor: not-allowed;
+    }
+  </style>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>Заказы ресторана</h2>
+    <div class="meta" style="margin-bottom:16px">
+      <a id="navRestaurants" href="#">Рестораны</a>
+      <span style="opacity:.4;margin:0 8px">|</span>
+      <span id="navOrders" style="font-weight:600">Заказы</span>
+      <span style="opacity:.4;margin:0 8px">|</span>
+      <a id="navMenu" href="#">Управление меню</a>
+      <span style="opacity:.4;margin:0 8px">|</span>
+      <a id="navProfile" href="#">Профиль админа</a>
+    </div>
+
+    <div class="meta" style="margin-bottom:16px">
+      <button id="refresh" class="admin-btn" style="width: auto; margin-right: 8px;">Обновить</button>
+      <label style="margin-left:8px"><input type="checkbox" id="auto"/> Авто-обновлять</label>
+    </div>
+
+    <div id="olist"></div>
+  </div>
+
+  <script>
+    // ===== ОСНОВНЫЕ ПЕРЕМЕННЫЕ =====
+    const api = location.origin + '/api';
+    const q = new URLSearchParams(location.search);
+    const uid = Number(q.get('uid')) || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 0);
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};
+    
+    // ===== ЛОГИРОВАНИЕ =====
+    console.log('=== JAVASCRIPT LOADED ===');
+    console.log('=== VARIABLES CHECK ===');
+    console.log('api:', api);
+    console.log('uid:', uid);
+    console.log('headers:', headers);
+    console.log('location.origin:', location.origin);
+    console.log('location.search:', location.search);
+    
+    // ===== ФУНКЦИИ ЗАГРУЗКИ ЗАКАЗОВ =====
+    async function simpleLoad() {
+      console.log('=== SIMPLE LOAD START ===');
+      
+      try {
+        // Простой тест API
+        console.log('Testing API...');
+        const testRes = await fetch(api + '/ra/me', { headers });
+        console.log('API test response:', testRes.status, testRes.ok);
+        
+        if (testRes.ok) {
+          const testData = await testRes.json();
+          console.log('API test data:', testData);
+          
+          // Теперь загружаем заказы
+          console.log('Loading orders...');
+          const ordersRes = await fetch(api + '/ra/orders', { headers });
+          console.log('Orders response:', ordersRes.status, ordersRes.ok);
+          
+          if (ordersRes.ok) {
+            const orders = await ordersRes.json();
+            console.log('Orders loaded:', orders);
+            
+            // Отображаем заказы
+            const olist = document.getElementById('olist');
+            if (olist) {
+              if (orders.length > 0) {
+                let html = '<div class="meta">Заказы загружены:</div>';
+                // Сортируем заказы с последнего по первый
+                orders.slice().reverse().forEach(order => {
+                  html += `<div class="order-item" onclick="openOrderDetails(${order.id})" style="cursor: pointer;">
+                    <div class="order-header">
+                      <span class="order-id">Заказ #${order.id}</span>
+                      <span class="order-status status-${order.status}">${getStatusText(order.status)}</span>
+                    </div>
+                    <div class="order-details">
+                      Сумма: ${order.total_price} ₽ · ${order.delivery_type === 'delivery' ? 'Доставка' : 'Самовывоз'}
+                    </div>
+                    <div class="order-details">
+                      ${order.address ? `Адрес: ${order.address} · ` : ''}Телефон: ${order.phone}
+                    </div>
+                    <div class="order-items">
+                      ${Array.isArray(order.items) ? order.items.map(i => `${i.name} × ${i.qty}`).join(', ') : 'Нет данных'}
+                    </div>
+                    <div class="order-details">
+                      ${new Date(order.created_at).toLocaleString('ru-RU')}
+                    </div>
+                  </div>`;
+                });
+                olist.innerHTML = html;
+              } else {
+                olist.innerHTML = '<div class="meta">Заказов нет</div>';
+              }
+            }
+          } else {
+            console.error('Failed to load orders:', ordersRes.status);
+            document.getElementById('olist').innerHTML = `<div class="meta">Ошибка загрузки заказов: ${ordersRes.status}</div>`;
+          }
+        } else {
+          console.error('API test failed:', testRes.status);
+          document.getElementById('olist').innerHTML = `<div class="meta">API недоступен: ${testRes.status}</div>`;
+        }
+        
+      } catch (error) {
+        console.error('Error in simpleLoad:', error);
+        document.getElementById('olist').innerHTML = `<div class="meta">Ошибка: ${error.message}</div>`;
+      }
+      
+      console.log('=== SIMPLE LOAD END ===');
+    }
+    
+    // ===== ФУНКЦИИ ДЛЯ СТАТУСОВ ЗАКАЗОВ =====
+    function getStatusText(status) {
+      const statusMap = {
+        'sent': 'Отправлен',
+        'accepted': 'Принят',
+        'delivered': 'Доставлен',
+        'cancelled': 'Отменен',
+        'modified': 'Изменен'
+      };
+      return statusMap[status] || status;
+    }
+    
+    // ===== ФУНКЦИИ МОДАЛЬНОГО ОКНА =====
+    function selectAction(element, value) {
+      console.log('selectAction called:', value);
+      
+      // Убираем выделение со всех опций
+      document.querySelectorAll('.action-option').forEach(opt => {
+        opt.classList.remove('selected');
+        opt.querySelector('input[type="radio"]').checked = false;
+      });
+      
+      // Выделяем выбранную опцию
+      element.classList.add('selected');
+      element.querySelector('input[type="radio"]').checked = true;
+      
+      // Активируем кнопку "Отправить"
+      const submitBtn = document.querySelector('.order-modal-submit');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        console.log('Submit button enabled');
+      }
+    }
+    
+    async function processOrderAction(orderId) {
+      console.log('processOrderAction called for order:', orderId);
+      
+      const selectedAction = document.querySelector('input[name="action"]:checked');
+      if (!selectedAction) {
+        alert('Выберите действие');
+        return;
+      }
+      
+      const action = selectedAction.value;
+      console.log('Selected action:', action);
+      
+      const submitButton = document.querySelector('.order-modal-submit');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Обработка...';
+      
+      try {
+        if (action.startsWith('accept-')) {
+          const etaMinutes = parseInt(action.split('-')[1]);
+          console.log('Accepting order with ETA:', etaMinutes);
+          
+          const res = await fetch(api + '/ra/orders/' + orderId + '/accept?eta_minutes=' + etaMinutes, {
+            method: 'POST',
+            headers
+          });
+          
+          if (res.ok) {
+            alert('Заказ принят!');
+            // Закрываем модальное окно
+            document.querySelector('.order-modal-overlay').remove();
+            // Перезагружаем заказы
+            simpleLoad();
+          } else {
+            throw new Error('Ошибка принятия заказа');
+          }
+        } else if (action === 'modify') {
+          // Закрываем модальное окно и открываем окно изменения заказа
+          document.querySelector('.order-modal-overlay').remove();
+          // Показываем модальное окно для изменения заказа
+          showModifyOrderModal(orderId);
+          return;
+        } else if (action === 'cancel') {
+          console.log('=== CANCEL ACTION SELECTED ===');
+          console.log('Closing main modal and opening cancel modal...');
+          
+          // Закрываем модальное окно и открываем окно отмены заказа
+          const mainModal = document.querySelector('.order-modal-overlay');
+          if (mainModal) {
+            console.log('Main modal found, closing...');
+            mainModal.remove();
+            console.log('Main modal closed');
+          } else {
+            console.error('Main modal not found!');
+          }
+          
+          // Показываем модальное окно для отмены заказа
+          console.log('Calling showCancelOrderModal with orderId:', orderId);
+          showCancelOrderModal(orderId);
+          return;
+        }
+        
+      } catch (error) {
+        console.error('Error processing order action:', error);
+        alert('Ошибка при обработке заказа: ' + error.message);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Отправить';
+      }
+    }
+    
+    // ===== ФУНКЦИЯ ПРИНУДИТЕЛЬНОГО ОТКРЫТИЯ МОДАЛЬНОГО ОКНА =====
+    function forceOpenModal() {
+      console.log('=== FORCE OPEN MODAL ===');
+      
+      // Получаем order_id из URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('order_id') || '21'; // По умолчанию 21 если нет в URL
+      
+      console.log('Force opening modal for order:', orderId);
+      
+      // Создаем модальное окно
+      const modal = document.createElement('div');
+      modal.className = 'order-modal-overlay';
+      modal.innerHTML = `
+        <div class="order-modal">
+          <button class="order-modal-close" onclick="this.closest('.order-modal-overlay').remove()">×</button>
+          <div class="order-modal-title">Обработка заказа #${orderId}</div>
+          
+          <div class="order-details-section">
+            <div class="order-detail-item">
+              <span class="order-detail-label">Заказ номер:</span> ${orderId}
+            </div>
+            <div class="order-detail-item">
+              <span class="order-detail-label">Статус заказа:</span> Новый
+            </div>
+            <div class="order-detail-item">
+              <span class="order-detail-label">Действие:</span> Выберите действие ниже
+            </div>
+          </div>
+          
+          <div class="order-actions-section">
+            <div class="action-option" onclick="selectAction(this, 'accept-30')">
+              <input type="radio" name="action" value="accept-30" id="accept-30">
+              <label class="action-option-label" for="accept-30">Принять и доставить за 30 мин</label>
+            </div>
+            <div class="action-option" onclick="selectAction(this, 'accept-60')">
+              <input type="radio" name="action" value="accept-60" id="accept-60">
+              <label class="action-option-label" for="accept-60">Принять и доставить за 1 час</label>
+            </div>
+            <div class="action-option" onclick="selectAction(this, 'accept-90')">
+              <input type="radio" name="action" value="accept-90" id="accept-90">
+              <label class="action-option-label" for="accept-90">Принять и доставить за 1,5 часа</label>
+            </div>
+            <div class="action-option" onclick="selectAction(this, 'accept-120')">
+              <input type="radio" name="action" value="accept-120" id="accept-120">
+              <label class="action-option-label" for="accept-120">Принять и доставить за 2 часа</label>
+            </div>
+            <div class="action-option" onclick="selectAction(this, 'accept-180')">
+              <input type="radio" name="action" value="accept-180" id="accept-180">
+              <label class="action-option-label" for="accept-180">Принять и доставить за 3 часа</label>
+            </div>
+            <div class="action-option" onclick="selectAction(this, 'modify')">
+              <input type="radio" name="action" value="modify" id="modify">
+              <label class="action-option-label" for="modify">Изменить заказ</label>
+            </div>
+            <div class="action-option" onclick="selectAction(this, 'cancel')">
+              <input type="radio" name="action" value="cancel" id="cancel">
+              <label class="action-option-label" for="cancel">Отменить заказ</label>
+            </div>
+          </div>
+          
+          <button class="order-modal-submit" onclick="processOrderAction(${orderId})" disabled>
+            Отправить
+          </button>
+        </div>
+      `;
+      
+      console.log('Modal created, appending to DOM...');
+      document.body.appendChild(modal);
+      console.log('Modal appended! Check if visible...');
+      
+      // Проверяем видимость
+      setTimeout(() => {
+        const modalElement = document.querySelector('.order-modal-overlay');
+        if (modalElement) {
+          console.log('Modal found in DOM:', modalElement);
+          console.log('Modal display style:', window.getComputedStyle(modalElement).display);
+          console.log('Modal visibility style:', window.getComputedStyle(modalElement).visibility);
+          console.log('Modal opacity style:', window.getComputedStyle(modalElement).opacity);
+          console.log('Modal z-index style:', window.getComputedStyle(modalElement).zIndex);
+        } else {
+          console.error('Modal not found in DOM!');
+        }
+      }, 100);
+    }
+    
+    // ===== ФУНКЦИИ ДЛЯ ОТМЕНЫ ЗАКАЗА =====
+    function showCancelOrderModal(orderId) {
+      console.log('=== SHOW CANCEL ORDER MODAL ===');
+      console.log('Order ID for cancellation:', orderId);
+      console.log('Document body:', document.body);
+      console.log('Current modals count:', document.querySelectorAll('.order-modal-overlay').length);
+      
+      // Создаем модальное окно для отмены заказа
+      const modal = document.createElement('div');
+      modal.className = 'order-modal-overlay';
+      modal.innerHTML = `
+        <div class="order-modal" style="max-width: 500px;">
+          <button class="order-modal-close" onclick="this.closest('.order-modal-overlay').remove()">×</button>
+          <div class="order-modal-title">Отмена заказа #${orderId}</div>
+          
+          <div class="cancel-warning">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-text">
+              Вы уверены, что хотите отменить этот заказ? 
+              Отмена заказа не может быть отменена.
+            </div>
+          </div>
+          
+          <div class="cancel-comment-section">
+            <label class="comment-label">Причина отмены заказа:</label>
+            <textarea class="cancel-comment" 
+                      placeholder="Укажите причину отмены заказа (обязательно)..."
+                      rows="4"></textarea>
+            <div class="comment-note">* Комментарий обязателен для отмены заказа</div>
+          </div>
+          
+          <div class="cancel-actions">
+            <button class="cancel-btn cancel-back" onclick="this.closest('.order-modal-overlay').remove()">
+              Вернуться к заказу
+            </button>
+            <button class="cancel-btn cancel-confirm" onclick="confirmOrderCancellation(${orderId})" disabled>
+              Отменить заказ
+            </button>
+          </div>
+        </div>
+      `;
+      
+      console.log('Modal HTML created:', modal.outerHTML);
+      console.log('Appending modal to document body...');
+      
+      document.body.appendChild(modal);
+      console.log('Modal appended to DOM');
+      console.log('Modal element in DOM:', document.querySelector('.order-modal-overlay'));
+      console.log('Modal computed style:', window.getComputedStyle(modal));
+      
+      // Активируем кнопку отмены при вводе комментария
+      const commentTextarea = modal.querySelector('.cancel-comment');
+      const confirmBtn = modal.querySelector('.cancel-confirm');
+      
+      commentTextarea.addEventListener('input', function() {
+        confirmBtn.disabled = this.value.trim().length === 0;
+      });
+      
+      // Фокус на поле комментария
+      commentTextarea.focus();
+      
+      console.log('=== CANCEL MODAL SETUP COMPLETE ===');
+    }
+    
+    // Функция подтверждения отмены заказа
+    async function confirmOrderCancellation(orderId) {
+      console.log('=== CONFIRM ORDER CANCELLATION ===');
+      
+      const commentTextarea = document.querySelector('.cancel-comment');
+      const reason = commentTextarea.value.trim();
+      
+      if (!reason) {
+        alert('Пожалуйста, укажите причину отмены заказа');
+        commentTextarea.focus();
+        return;
+      }
+      
+      console.log('Cancelling order with reason:', reason);
+      
+      const confirmBtn = document.querySelector('.cancel-confirm');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Отмена...';
+      
+      try {
+        const res = await fetch(api + '/ra/orders/' + orderId + '/cancel?reason=' + encodeURIComponent(reason), {
+          method: 'POST',
+          headers
+        });
+        
+        if (res.ok) {
+          alert('Заказ успешно отменен!');
+          // Закрываем модальное окно
+          document.querySelector('.order-modal-overlay').remove();
+          // Перезагружаем заказы
+          simpleLoad();
+        } else {
+          throw new Error('Ошибка отмены заказа');
+        }
+        
+      } catch (error) {
+        console.error('Error cancelling order:', error);
+        alert('Ошибка при отмене заказа: ' + error.message);
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Отменить заказ';
+      }
+    }
+    
+    // ===== ФУНКЦИИ ДЛЯ ИЗМЕНЕНИЯ ЗАКАЗА =====
+    async function showModifyOrderModal(orderId) {
+      console.log('=== SHOW MODIFY ORDER MODAL ===');
+      console.log('Order ID for modification:', orderId);
+      
+      try {
+        // Получаем данные заказа
+        const res = await fetch(api + '/ra/orders/' + orderId, { headers });
+        if (!res.ok) {
+          throw new Error(`Ошибка загрузки заказа: ${res.status}`);
+        }
+        
+        const order = await res.json();
+        console.log('Order data loaded:', order);
+        
+        // Создаем модальное окно для изменения заказа
+        const modal = document.createElement('div');
+        modal.className = 'order-modal-overlay';
+        modal.innerHTML = `
+          <div class="order-modal" style="max-width: 95%; max-height: 90%;">
+            <button class="order-modal-close" onclick="this.closest('.order-modal-overlay').remove()">×</button>
+            <div class="order-modal-title">Изменение заказа #${orderId}</div>
+            
+            <div class="order-details-section">
+              <div class="order-detail-item">
+                <span class="order-detail-label">Статус:</span> ${getStatusText(order.status)}
+              </div>
+              <div class="order-detail-item">
+                <span class="order-detail-label">Сумма:</span> ${order.total_price} ₽
+              </div>
+              <div class="order-detail-item">
+                <span class="order-detail-label">Тип доставки:</span> ${order.delivery_type === 'delivery' ? 'Доставка' : 'Самовывоз'}
+              </div>
+            </div>
+            
+            <div class="order-items-edit-section">
+              <h4 style="margin: 16px 0 12px 0; color: #1f2937; font-size: 16px;">Состав заказа</h4>
+              <div class="order-items-list">
+                ${order.items.map((item, index) => `
+                  <div class="order-item-edit" data-index="${index}" data-original-qty="${item.qty}">
+                    <div class="item-info">
+                      <span class="item-name">${item.name}</span>
+                      <span class="item-price">${item.price || 'Цена не указана'} ₽</span>
+                    </div>
+                    <div class="item-quantity-controls">
+                      <button class="qty-btn qty-minus" onclick="changeItemQuantity(${index}, -1)">−</button>
+                      <input type="number" class="qty-input" value="${item.qty}" min="0" max="99" 
+                             onchange="updateItemQuantity(${index}, this.value)">
+                      <button class="qty-btn qty-plus" onclick="changeItemQuantity(${index}, 1)">+</button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div class="modify-comment-section">
+              <label class="comment-label">Комментарий к изменению заказа:</label>
+              <textarea class="modify-comment" 
+                        placeholder="Укажите причину изменения заказа (обязательно)..."
+                        rows="3"></textarea>
+              <div class="comment-note">* Комментарий обязателен для изменения заказа</div>
+            </div>
+            
+            <div class="modify-actions">
+              <button class="modify-btn modify-cancel" onclick="this.closest('.order-modal-overlay').remove()">
+                Отмена
+              </button>
+              <button class="modify-btn modify-save" onclick="saveOrderModification(${orderId})" disabled>
+                Сохранить изменения
+              </button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(modal);
+        console.log('Modify modal created and appended');
+        
+        // Активируем кнопку сохранения при вводе комментария
+        const commentTextarea = modal.querySelector('.modify-comment');
+        const saveBtn = modal.querySelector('.modify-save');
+        
+        commentTextarea.addEventListener('input', function() {
+          saveBtn.disabled = this.value.trim().length === 0;
+        });
+        
+      } catch (error) {
+        console.error('Error showing modify modal:', error);
+        alert('Ошибка при загрузке данных заказа: ' + error.message);
+      }
+    }
+    
+    // Функция изменения количества блюда
+    function changeItemQuantity(index, delta) {
+      const itemElement = document.querySelector(`[data-index="${index}"]`);
+      const qtyInput = itemElement.querySelector('.qty-input');
+      const newQty = Math.max(0, parseInt(qtyInput.value) + delta);
+      qtyInput.value = newQty;
+      updateItemQuantity(index, newQty);
+    }
+    
+    // Функция обновления количества блюда
+    function updateItemQuantity(index, newQty) {
+      const itemElement = document.querySelector(`[data-index="${index}"]`);
+      const originalQty = parseInt(itemElement.dataset.originalQty);
+      
+      // Визуально показываем изменения
+      if (newQty !== originalQty) {
+        itemElement.classList.add('modified');
+      } else {
+        itemElement.classList.remove('modified');
+      }
+    }
+    
+    // Функция сохранения изменений заказа
+    async function saveOrderModification(orderId) {
+      console.log('=== SAVE ORDER MODIFICATION ===');
+      
+      const commentTextarea = document.querySelector('.modify-comment');
+      const comment = commentTextarea.value.trim();
+      
+      if (!comment) {
+        alert('Пожалуйста, укажите комментарий к изменению заказа');
+        commentTextarea.focus();
+        return;
+      }
+      
+      // Собираем изменения
+      const modifications = [];
+      const itemElements = document.querySelectorAll('.order-item-edit');
+      
+      itemElements.forEach((itemElement, index) => {
+        const originalQty = parseInt(itemElement.dataset.originalQty);
+        const newQty = parseInt(itemElement.querySelector('.qty-input').value);
+        
+        if (newQty !== originalQty) {
+          modifications.push({
+            index: index,
+            qty: newQty
+          });
+        }
+      });
+      
+      // Проверяем, есть ли изменения или комментарий
+      if (modifications.length === 0 && comment.trim().length === 0) {
+        alert('Нет изменений для сохранения и комментарий не указан');
+        return;
+      }
+      
+      console.log('Modifications to save:', modifications);
+      console.log('Comment:', comment);
+      
+      const saveBtn = document.querySelector('.modify-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Сохранение...';
+      
+      try {
+        // Если есть изменения в блюдах, отправляем их
+        if (modifications.length > 0) {
+          const res = await fetch(api + '/ra/orders/' + orderId + '/modify-items', {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: modifications,
+              comment: comment
+            })
+          });
+          
+          if (res.ok) {
+            alert('Заказ успешно изменен!');
+            // Закрываем модальное окно
+            document.querySelector('.order-modal-overlay').remove();
+            // Перезагружаем заказы
+            simpleLoad();
+          } else {
+            const errorText = await res.text();
+            throw new Error(`Ошибка API: ${res.status} - ${errorText}`);
+          }
+        } else {
+          // Если нет изменений в блюдах, отправляем только комментарий
+          const res = await fetch(api + '/ra/orders/' + orderId + '/modify?comment=' + encodeURIComponent(comment), {
+            method: 'POST',
+            headers: headers
+          });
+          
+          if (res.ok) {
+            alert('Комментарий к заказу успешно добавлен!');
+            // Закрываем модальное окно
+            document.querySelector('.order-modal-overlay').remove();
+            // Перезагружаем заказы
+            simpleLoad();
+          } else {
+            const errorText = await res.text();
+            throw new Error(`Ошибка API: ${res.status} - ${errorText}`);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error saving modifications:', error);
+        alert('Ошибка при сохранении изменений: ' + error.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Сохранить изменения';
+      }
+    }
+    
+    // ===== ФУНКЦИИ ДЛЯ ОТКРЫТИЯ ДЕТАЛЕЙ ЗАКАЗА =====
+    function openOrderDetails(orderId) {
+      console.log('Opening order details for order:', orderId);
+      console.log('Current uid:', uid);
+      
+      // Переходим на страницу деталей заказа
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      p.set('order_id', orderId);
+      
+      // Обязательно добавляем uid в URL
+      if (uid) {
+        p.set('uid', uid);
+        console.log('Added uid to URL:', uid);
+      } else {
+        console.error('No uid available!');
+        alert('Ошибка: не удалось определить пользователя');
+        return;
+      }
+      
+      const targetUrl = '/static/ra_order_details.html?' + p.toString();
+      console.log('Navigating to:', targetUrl);
+      window.location.href = targetUrl;
+    }
+    
+    // ===== ОБРАБОТЧИКИ СОБЫТИЙ =====
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('=== DOM LOADED ===');
+      
+      // Обработчик для кнопки "Обновить"
+      const refreshBtn = document.getElementById('refresh');
+      if (refreshBtn) {
+        console.log('Refresh button found, adding click handler');
+        refreshBtn.onclick = function() {
+          console.log('Refresh button clicked!');
+          simpleLoad();
+        };
+      } else {
+        console.error('Refresh button not found!');
+      }
+      
+      // Проверяем элемент olist
+      const olist = document.getElementById('olist');
+      if (olist) {
+        console.log('olist element found:', olist);
+        olist.innerHTML = '<div class="meta">Страница загружена. Нажмите "Обновить" для загрузки заказов.</div>';
+      } else {
+        console.error('olist element not found!');
+      }
+      
+      // Автоматически загружаем заказы при загрузке страницы
+      console.log('Auto-loading orders...');
+      simpleLoad();
+      
+      // ПРОВЕРЯЕМ, ЕСТЬ ЛИ order_id В URL ДЛЯ АВТОМАТИЧЕСКОГО ОТКРЫТИЯ МОДАЛЬНОГО ОКНА
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('order_id');
+      
+      console.log('=== URL PARAMS CHECK ===');
+      console.log('Full URL:', window.location.href);
+      console.log('Search params:', window.location.search);
+      console.log('URLParams object:', urlParams);
+      console.log('Order ID found:', orderId);
+      console.log('Order ID type:', typeof orderId);
+      console.log('Order ID truthy check:', !!orderId);
+      
+      if (orderId) {
+        console.log('=== ORDER_ID FOUND IN URL ===');
+        console.log('Order ID:', orderId);
+        console.log('Will open modal automatically after loading orders...');
+        
+        // Ждем загрузки заказов и открываем модальное окно
+        setTimeout(() => {
+          console.log('=== OPENING MODAL AUTOMATICALLY ===');
+          console.log('Opening modal for order:', orderId);
+          console.log('Current time:', new Date().toISOString());
+          
+          // Создаем простое модальное окно для обработки заказа
+          const modal = document.createElement('div');
+          modal.className = 'order-modal-overlay';
+          modal.innerHTML = `
+            <div class="order-modal">
+              <button class="order-modal-close" onclick="this.closest('.order-modal-overlay').remove()">×</button>
+              <div class="order-modal-title">Обработка заказа #${orderId}</div>
+              
+              <div class="order-details-section">
+                <div class="order-detail-item">
+                  <span class="order-detail-label">Заказ номер:</span> ${orderId}
+                </div>
+                <div class="order-detail-item">
+                  <span class="order-detail-label">Статус заказа:</span> Новый
+                </div>
+                <div class="order-detail-item">
+                  <span class="order-detail-label">Действие:</span> Выберите действие ниже
+                </div>
+              </div>
+              
+              <div class="order-actions-section">
+                <div class="action-option" onclick="selectAction(this, 'accept-30')">
+                  <input type="radio" name="action" value="accept-30" id="accept-30">
+                  <label class="action-option-label" for="accept-30">Принять и доставить за 30 мин</label>
+                </div>
+                <div class="action-option" onclick="selectAction(this, 'accept-60')">
+                  <input type="radio" name="action" value="accept-60" id="accept-60">
+                  <label class="action-option-label" for="accept-60">Принять и доставить за 1 час</label>
+                </div>
+                <div class="action-option" onclick="selectAction(this, 'accept-90')">
+                  <input type="radio" name="action" value="accept-90" id="accept-90">
+                  <label class="action-option-label" for="accept-90">Принять и доставить за 1,5 часа</label>
+                </div>
+                <div class="action-option" onclick="selectAction(this, 'accept-120')">
+                  <input type="radio" name="action" value="accept-120" id="accept-120">
+                  <label class="action-option-label" for="accept-120">Принять и доставить за 2 часа</label>
+                </div>
+                <div class="action-option" onclick="selectAction(this, 'accept-180')">
+                  <input type="radio" name="action" value="accept-180" id="accept-180">
+                  <label class="action-option-label" for="accept-180">Принять и доставить за 3 часа</label>
+                </div>
+                <div class="action-option" onclick="selectAction(this, 'modify')">
+                  <input type="radio" name="action" value="modify" id="modify">
+                  <label class="action-option-label" for="modify">Изменить заказ</label>
+                </div>
+                <div class="action-option" onclick="selectAction(this, 'cancel')">
+                  <input type="radio" name="action" value="cancel" id="cancel">
+                  <label class="action-option-label" for="cancel">Отменить заказ</label>
+                </div>
+              </div>
+              
+              <button class="order-modal-submit" onclick="processOrderAction(${orderId})" disabled>
+                Отправить
+              </button>
+            </div>
+          `;
+          
+          console.log('Modal HTML created, appending to DOM');
+          console.log('Modal element:', modal);
+          console.log('Modal HTML:', modal.outerHTML);
+          console.log('Document body:', document.body);
+          
+          document.body.appendChild(modal);
+          console.log('Modal appended to DOM - should be visible now!');
+          console.log('Modal in DOM:', document.querySelector('.order-modal-overlay'));
+          console.log('Modal computed style:', window.getComputedStyle(modal));
+          
+        }, 3000); // Ждем 3 секунды после загрузки страницы
+      } else {
+        console.log('=== NO ORDER_ID IN URL ===');
+        console.log('Modal will not open automatically');
+      }
+    });
+  </script>
+</body>
+</html>
+

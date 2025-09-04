@@ -1,0 +1,215 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Текущий заказ</title>
+  <link rel="stylesheet" href="/static/styles.css?v=24" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom:8px"><a id="back" href="#">Назад</a></div>
+    <div id="banner" class="restaurant" style="text-align:center">
+      <div class="title" id="bannerTitle">Заказ</div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button id="contact" class="pill">Связаться с нами</button>
+        <button id="contactRest" class="pill">Связаться с рестораном</button>
+      </div>
+    </div>
+    <div id="status" class="meta"></div>
+    <div id="items"></div>
+    <div id="review" class="restaurant" style="margin-top:12px; display:none">
+      <div class="title">Оцените заказ</div>
+      <div class="meta">
+        <span id="stars">
+          <button data-v="1">★</button>
+          <button data-v="2">★</button>
+          <button data-v="3">★</button>
+          <button data-v="4">★</button>
+          <button data-v="5">★</button>
+        </span>
+      </div>
+      <div class="meta" style="margin-top:6px"><input id="revText" placeholder="Комментарий (необязательно)" style="width:100%"/></div>
+      <div style="margin-top:6px"><button id="revSend" disabled>Отправить</button></div>
+    </div>
+    
+    <div id="appReview" class="restaurant" style="margin-top:12px; display:none">
+      <div class="title">Отзыв о приложении</div>
+      <div class="meta">
+        <span id="appStars">
+          <button data-v="1">★</button>
+          <button data-v="2">★</button>
+          <button data-v="3">★</button>
+          <button data-v="4">★</button>
+          <button data-v="5">★</button>
+        </span>
+      </div>
+      <div class="meta" style="margin-top:6px"><input id="appRevText" placeholder="Комментарий о приложении (необязательно)" style="width:100%"/></div>
+      <div style="margin-top:6px"><button id="appRevSend" disabled>Отправить отзыв о приложении</button></div>
+    </div>
+    <div style="margin-top:12px">
+      <button id="delivered">Доставлено</button>
+      <a href="/static/index.html" style="margin-left:8px">Главная</a>
+    </div>
+  </div>
+  <script>
+    const api = location.origin + '/api';
+    const url = new URL(location.href);
+    const orderId = Number(url.searchParams.get('id'));
+    const showReview = url.searchParams.get('show_review') === '1';
+    const p = new URLSearchParams(location.search);
+    const tg = window.Telegram?.WebApp;
+    const uid = (p.get('uid') && Number(p.get('uid'))) || (tg?.initDataUnsafe?.user?.id || 0);
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid), 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+
+    async function load() {
+      const res = await fetch(api + '/orders/' + orderId);
+      if (!res.ok) { document.getElementById('status').textContent = 'Заказ не найден'; return; }
+      const o = await res.json();
+
+      // lookup options for readable names and deltas
+      const optionIds = [...new Set(o.items.flatMap(i => (i.chosen_options || [])))];
+      let optionsMap = new Map();
+      if (optionIds.length) {
+        const opts = await (await fetch(api + '/options/lookup?ids=' + optionIds.join(','))).json();
+        optionsMap = new Map(opts.map(o => [o.id, o]));
+      }
+
+      // recompute subtotal with options (client-side presentation)
+      let subtotal = o.items.reduce((sum, it) => {
+        const chosen = (it.chosen_options || []).map(id => optionsMap.get(id)).filter(Boolean);
+        const delta = chosen.reduce((s, op) => s + (op.price_delta || 0), 0);
+        return sum + (it.price + delta) * it.qty;
+      }, 0);
+      let delivery = 0;
+      if (o.delivery_type === 'delivery') {
+        const any = o.items[0];
+        if (any) {
+          const r = await (await fetch(api + '/restaurants/' + o.restaurant_id)).json();
+          delivery = r.delivery_fee || 0;
+        }
+      }
+      const presentedTotal = subtotal + delivery;
+
+      const human = { created: 'создан', sent: 'отправлен', accepted: 'принят рестораном', delivered: 'доставлен', cancelled: 'отменён', modified: 'изменён' };
+      const title = (o.status === 'accepted') ? `Ресторан принял заказ. Время доставки ~ ${o.eta_minutes || 60} мин` : 'Заказ отправлен. Ждите подтверждение ресторана';
+      document.getElementById('bannerTitle').textContent = title;
+      document.getElementById('status').textContent = 'Статус: ' + (human[o.status] || o.status) + ' · Доставка: ' + delivery + ' р · Итого: ' + presentedTotal + ' р';
+      // support link
+      try {
+        const cfg = await (await fetch(api + '/config')).json();
+        document.getElementById('contact').onclick = () => { location.href = cfg.support_tg_url; };
+      } catch {}
+      // restaurant phone
+      try {
+        const r = await (await fetch(api + '/restaurants/' + o.restaurant_id)).json();
+        const phone = r.phone || '';
+        const btn = document.getElementById('contactRest');
+        if (phone) {
+          btn.onclick = () => { try { location.href = 'tel:' + phone.replace(/\s+/g,''); } catch { alert('Телефон ресторана: ' + phone); } };
+        } else {
+          btn.disabled = true;
+        }
+      } catch {}
+      const list = document.getElementById('items');
+      list.innerHTML = '';
+      o.items.forEach(it => {
+        const chosen = (it.chosen_options || []).map(id => optionsMap.get(id)).filter(Boolean);
+        const delta = chosen.reduce((s, op) => s + (op.price_delta || 0), 0);
+        const unit = it.price + delta;
+        const optsLabel = chosen.length ? ('Опции: ' + chosen.map(o => o.name + (o.price_delta ? ` (+${o.price_delta} р)` : '')).join(', ')) : '';
+        const el = document.createElement('div');
+        el.className = 'restaurant';
+        el.innerHTML = `<div class="title">${it.name}</div>
+          <div class="meta">${optsLabel}</div>
+          <div class="meta">${unit} р × ${it.qty} = <b>${unit*it.qty}</b> р</div>`;
+        list.appendChild(el);
+      });
+      document.getElementById('delivered').disabled = (o.status === 'delivered');
+
+      // review block
+      if (o.status === 'delivered' || showReview) {
+        const res = await fetch(api + '/reviews/by-order?order_id=' + orderId + (uid ? ('&uid=' + uid) : ''), { headers });
+        const has = res.ok ? await res.json() : { exists: false };
+        if (!has.exists) {
+          document.getElementById('review').style.display = 'block';
+          setupReview(o);
+        }
+        
+        // Проверяем отзыв о приложении
+        const appRes = await fetch(api + '/app-reviews/my' + (uid ? ('?uid=' + uid) : ''), { headers });
+        const appHas = appRes.ok ? await appRes.json() : { exists: false };
+        console.log('App review check:', appHas);
+        
+        if (!appHas.exists) {
+          document.getElementById('appReview').style.display = 'block';
+          setupAppReview();
+        }
+      }
+    }
+
+    async function markDelivered() {
+      await fetch(api + '/orders/' + orderId + '/delivered', { method: 'POST' });
+      await load();
+    }
+
+    document.getElementById('delivered').onclick = markDelivered;
+    document.getElementById('back').onclick = (e) => { e.preventDefault(); const p2 = new URLSearchParams(location.search); if (!p2.get('ngrok-skip-browser-warning')) p2.set('ngrok-skip-browser-warning','1'); location.href = '/static/profile.html?' + p2.toString(); };
+    load();
+
+    function setupReview(order) {
+      let rating = 0;
+      const stars = document.querySelectorAll('#stars button');
+      
+      // Устанавливаем черный цвет по умолчанию
+      stars.forEach(x => x.style.color = '#000');
+      
+      stars.forEach(b => {
+        b.onclick = () => {
+          rating = Number(b.getAttribute('data-v'));
+          stars.forEach(x => x.style.color = (Number(x.getAttribute('data-v')) <= rating ? '#fbbf24' : '#000'));
+          document.getElementById('revSend').disabled = rating === 0;
+        };
+      });
+      document.getElementById('revSend').onclick = async () => {
+        const comment = (document.getElementById('revText').value||'').trim();
+        const res = await fetch(api + '/reviews' + (uid ? ('?uid=' + uid) : ''), { method:'POST', headers, body: JSON.stringify({ order_id: order.id, restaurant_id: order.restaurant_id, rating, comment }) });
+        if (res.ok) {
+          document.getElementById('review').innerHTML = '<div class="meta">Спасибо! Отзыв отправлен.</div>';
+        } else {
+          const err = await res.json().catch(()=>({}));
+          alert('Ошибка: ' + (err.detail || res.status));
+        }
+      };
+    }
+    
+    function setupAppReview() {
+      let rating = 0;
+      const stars = document.querySelectorAll('#appStars button');
+      
+      // Устанавливаем черный цвет по умолчанию
+      stars.forEach(x => x.style.color = '#000');
+      
+      stars.forEach(b => {
+        b.onclick = () => {
+          rating = Number(b.getAttribute('data-v'));
+          stars.forEach(x => x.style.color = (Number(x.getAttribute('data-v')) <= rating ? '#fbbf24' : '#000'));
+          document.getElementById('appRevSend').disabled = rating === 0;
+        };
+      });
+      document.getElementById('appRevSend').onclick = async () => {
+        const comment = (document.getElementById('appRevText').value||'').trim();
+        const res = await fetch(api + '/app-reviews' + (uid ? ('?uid=' + uid) : ''), { method:'POST', headers, body: JSON.stringify({ rating, comment }) });
+        if (res.ok) {
+          document.getElementById('appReview').innerHTML = '<div class="meta">Спасибо! Отзыв о приложении отправлен.</div>';
+        } else {
+          const err = await res.json().catch(()=>({}));
+          alert('Ошибка: ' + (err.detail || res.status));
+        }
+      };
+    }
+  </script>
+</body>
+</html>

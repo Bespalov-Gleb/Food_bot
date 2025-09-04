@@ -1,0 +1,527 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Профиль ресторана</title>
+     <link rel="stylesheet" href="/static/styles.v23.css?v=30" />
+  <style>
+         .admin-buttons {
+       display: grid;
+       grid-template-columns: 1fr 1fr;
+       gap: 8px;
+       margin-top: 20px;
+     }
+     
+     .admin-btn {
+       padding: 10px 12px;
+       background: #3b82f6;
+       color: white;
+       border: none;
+       border-radius: 8px;
+       font-size: 13px;
+       font-weight: 500;
+       cursor: pointer;
+       transition: all 0.2s ease;
+       text-align: center;
+     }
+     
+     .admin-btn:hover {
+       background: #2563eb;
+       transform: translateY(-1px);
+     }
+    
+    .submenu {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .submenu-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 12px;
+    }
+    
+    .submenu-btn {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      background: white;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .submenu-btn:hover {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+    }
+    
+    .back-btn {
+      background: #f1f5f9;
+      color: #64748b;
+      border-color: #cbd5e1;
+    }
+    
+    .back-btn:hover {
+      background: #e2e8f0;
+      color: #475569;
+    }
+    
+    .orders-section {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 16px;
+    }
+    
+    .order-item {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .order-id {
+      font-weight: 600;
+      color: #1e293b;
+    }
+    
+    .order-status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .status-sent { background: #fef3c7; color: #92400e; }
+    .status-accepted { background: #d1fae5; color: #065f46; }
+    .status-delivered { background: #dbeafe; color: #1e40af; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+    .status-modified { background: #f3e8ff; color: #7c3aed; }
+    
+    .order-details {
+      font-size: 13px;
+      color: #64748b;
+    }
+    
+         .order-items {
+       margin-top: 8px;
+       font-size: 12px;
+       color: #6b7280;
+     }
+     
+     .editable-field {
+       display: flex;
+       align-items: center;
+       gap: 8px;
+       margin-bottom: 8px;
+     }
+     
+     .editable-field input {
+       flex: 1;
+       padding: 6px 8px;
+       border: 1px solid #d1d5db;
+       border-radius: 4px;
+       font-size: 13px;
+     }
+     
+           .editable-field button {
+        padding: 6px 12px;
+        background: white;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      
+      .editable-field button:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+      }
+     
+     .field-label {
+       font-weight: 500;
+       color: #374151;
+       min-width: 120px;
+     }
+     
+     .field-value {
+       color: #6b7280;
+     }
+  </style>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>Профиль ресторана</h2>
+    <div class="meta" style="margin-bottom:16px">
+      <a id="navRestaurants" href="#">Рестораны</a>
+      <span style="opacity:.4;margin:0 8px">|</span>
+      <a id="navOrders" href="#">Заказы</a>
+      <span style="opacity:.4;margin:0 8px">|</span>
+      <a id="navMenu" href="#">Управление меню</a>
+      <span style="opacity:.4;margin:0 8px">|</span>
+      <span style="font-weight:600">Профиль админа</span>
+    </div>
+
+         <!-- Основная информация о ресторане -->
+     <div id="card" class="restaurant"></div>
+
+     <!-- Загрузка изображения ресторана -->
+     <div id="imageUploadSection" style="margin-top: 20px;">
+       <div class="editable-field">
+         <span class="field-label">Фото ресторана:</span>
+         <input id="imageInput" type="file" accept="image/*" style="flex: 1; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
+         <button onclick="uploadRestaurantImage()">Загрузить</button>
+       </div>
+       <div id="currentImage" style="margin-top: 10px; text-align: center;"></div>
+     </div>
+
+     <!-- Изменяемые поля -->
+     <div id="editableFields" style="margin-top: 20px;">
+       <div class="editable-field">
+         <span class="field-label">Адрес:</span>
+         <input id="addressInput" type="text" placeholder="Введите адрес">
+         <button onclick="updateField('address')">Сохранить</button>
+       </div>
+       
+       <div class="editable-field">
+         <span class="field-label">Телефон:</span>
+         <input id="phoneInput" type="text" placeholder="Введите телефон">
+         <button onclick="updateField('phone')">Сохранить</button>
+       </div>
+       
+       <div class="editable-field">
+         <span class="field-label">Email для уведомлений:</span>
+         <input id="emailInput" type="email" placeholder="restaurant@example.com">
+         <button onclick="updateField('email')">Сохранить</button>
+       </div>
+       
+       <div class="editable-field">
+         <span class="field-label">Режим работы:</span>
+         <input id="workingHoursInput" type="text" placeholder="10:00 - 20:00">
+         <button onclick="updateField('workingHours')">Сохранить</button>
+       </div>
+       
+       <div class="editable-field">
+         <span class="field-label">Мин. сумма:</span>
+         <input id="minOrderInput" type="number" placeholder="1500">
+         <button onclick="updateField('minOrder')">Сохранить</button>
+       </div>
+       
+       <div class="editable-field">
+         <span class="field-label">Время доставки:</span>
+         <input id="deliveryTimeInput" type="number" placeholder="90">
+         <button onclick="updateField('deliveryTime')">Сохранить</button>
+       </div>
+     </div>
+
+     <!-- Кнопки управления -->
+     <div class="admin-buttons">
+       <button id="btnToggleStatus" class="admin-btn">Выключить ресторан</button>
+       <button id="btnOrders" class="admin-btn">Заказы</button>
+     </div>
+
+    
+
+    <!-- История заказов -->
+    <div id="ordersSection" class="orders-section" style="display: none; margin-top: 20px;">
+      <div class="section-title">История заказов</div>
+      <div id="ordersList"></div>
+    </div>
+  </div>
+
+  <script>
+    const api = location.origin + '/api';
+    const tg = window.Telegram?.WebApp;
+    const q = new URLSearchParams(location.search);
+    const uid = (q.get('uid') && Number(q.get('uid'))) || tg?.initDataUnsafe?.user?.id || 0;
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};
+
+    document.getElementById('navRestaurants').onclick = (e) => {
+      e.preventDefault();
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      location.href = '/static/index.html?' + p.toString();
+    };
+    document.getElementById('navOrders').onclick = (e) => {
+      e.preventDefault();
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      location.href = '/static/ra.html?' + p.toString();
+    };
+    document.getElementById('navMenu').onclick = (e) => {
+      e.preventDefault();
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      location.href = '/static/ra_menu.html?' + p.toString();
+    };
+
+    let currentRestaurant = null;
+
+    async function load() {
+      const res = await fetch(api + '/ra/restaurant', { headers });
+      if (!res.ok) {
+        document.getElementById('card').innerHTML = '<div class="meta">Нет доступа</div>';
+        return;
+      }
+      const r = await res.json();
+      currentRestaurant = r;
+      render(r);
+    }
+
+         function render(r) {
+       const card = document.getElementById('card');
+       card.innerHTML = '';
+       const box = document.createElement('div');
+       box.innerHTML = `
+         <div class="title">${r.name}</div>
+         <div class="meta">Статус: <span style="color: ${r.is_enabled ? '#059669' : '#dc2626'}; font-weight: 600;">${r.is_enabled ? 'Включен' : 'Выключен'}</span></div>
+         <div class="meta">Доставка: ${r.delivery_fee} ₽</div>`;
+       card.appendChild(box);
+
+       // Заполняем поля текущими значениями
+       document.getElementById('addressInput').value = r.address || '';
+       document.getElementById('phoneInput').value = r.phone || '';
+       document.getElementById('emailInput').value = r.email || ''; // Добавляем поле email
+       document.getElementById('workingHoursInput').value = formatWorkingHours(r.work_open_min, r.work_close_min) === 'Не задано' ? '' : formatWorkingHours(r.work_open_min, r.work_close_min);
+       document.getElementById('minOrderInput').value = r.delivery_min_sum || '';
+       document.getElementById('deliveryTimeInput').value = r.delivery_time_minutes || '';
+
+       // Обновляем кнопку статуса
+       const toggleBtn = document.getElementById('btnToggleStatus');
+       toggleBtn.textContent = r.is_enabled ? 'Выключить ресторан' : 'Включить ресторан';
+       toggleBtn.style.background = r.is_enabled ? '#dc2626' : '#059669';
+
+       // Отображаем текущее изображение ресторана
+       const currentImageDiv = document.getElementById('currentImage');
+       if (r.image) {
+         currentImageDiv.innerHTML = `
+           <div style="margin-bottom: 10px; font-size: 13px; color: #6b7280;">Текущее фото:</div>
+           <img src="${r.image}" alt="Фото ресторана" style="max-width: 200px; max-height: 120px; border-radius: 8px; border: 1px solid #d1d5db;">
+         `;
+       } else {
+         currentImageDiv.innerHTML = '<div style="font-size: 13px; color: #6b7280;">Фото ресторана не загружено</div>';
+       }
+     }
+
+    function formatWorkingHours(openMin, closeMin) {
+      if (!openMin || !closeMin) return 'Не задано';
+      const openHour = Math.floor(openMin / 60);
+      const openMinute = openMin % 60;
+      const closeHour = Math.floor(closeMin / 60);
+      const closeMinute = closeMin % 60;
+      return `${openHour.toString().padStart(2, '0')}:${openMinute.toString().padStart(2, '0')} - ${closeHour.toString().padStart(2, '0')}:${closeMinute.toString().padStart(2, '0')}`;
+    }
+
+         // Функция для обновления полей
+     async function updateField(fieldType) {
+       if (!currentRestaurant) return;
+       
+       let data = {};
+       
+       switch (fieldType) {
+         case 'address':
+           data.address = document.getElementById('addressInput').value.trim();
+           break;
+         case 'phone':
+           data.phone = document.getElementById('phoneInput').value.trim();
+           break;
+         case 'email': // Добавляем обработку email
+           data.email = document.getElementById('emailInput').value.trim();
+           break;
+         case 'workingHours':
+           const hoursText = document.getElementById('workingHoursInput').value.trim();
+           const match = hoursText.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+           if (match) {
+             const openHour = parseInt(match[1]);
+             const openMinute = parseInt(match[2]);
+             const closeHour = parseInt(match[3]);
+             const closeMinute = parseInt(match[4]);
+             data.work_open_min = openHour * 60 + openMinute;
+             data.work_close_min = closeHour * 60 + closeMinute;
+           } else {
+             alert('Неверный формат времени. Используйте формат: 10:00 - 20:00');
+             return;
+           }
+           break;
+         case 'minOrder':
+           const minOrder = parseInt(document.getElementById('minOrderInput').value);
+           if (isNaN(minOrder) || minOrder < 0) {
+             alert('Введите корректную сумму');
+             return;
+           }
+           data.delivery_min_sum = minOrder;
+           break;
+         case 'deliveryTime':
+           const deliveryTime = parseInt(document.getElementById('deliveryTimeInput').value);
+           if (isNaN(deliveryTime) || deliveryTime < 0) {
+             alert('Введите корректное время в минутах');
+             return;
+           }
+           data.delivery_time_minutes = deliveryTime;
+           break;
+       }
+       
+       const res = await fetch(api + '/ra/restaurant', {
+         method: 'PATCH',
+         headers: { ...headers, 'Content-Type': 'application/json' },
+         body: JSON.stringify(data)
+       });
+       
+       if (res.ok) {
+         load();
+         showSuccessMessage('Данные обновлены');
+       } else {
+         showErrorMessage('Ошибка при обновлении');
+       }
+     }
+
+     function showSuccessMessage(message) {
+       const div = document.createElement('div');
+       div.textContent = message;
+       div.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 12px; border-radius: 8px; z-index: 1000;';
+       document.body.appendChild(div);
+       setTimeout(() => div.remove(), 3000);
+     }
+
+     function showErrorMessage(message) {
+       const div = document.createElement('div');
+       div.textContent = message;
+       div.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px; border-radius: 8px; z-index: 1000;';
+       document.body.appendChild(div);
+       setTimeout(() => div.remove(), 3000);
+     }
+
+     // Функция для загрузки изображения ресторана
+     async function uploadRestaurantImage() {
+       const fileInput = document.getElementById('imageInput');
+       const file = fileInput.files[0];
+       
+       if (!file) {
+         showErrorMessage('Выберите файл для загрузки');
+         return;
+       }
+       
+       if (!file.type.startsWith('image/')) {
+         showErrorMessage('Выберите файл изображения');
+         return;
+       }
+       
+       const formData = new FormData();
+       formData.append('image', file);
+       
+       try {
+         const response = await fetch(api + '/ra/upload-restaurant-image', {
+           method: 'POST',
+           headers: {
+             'X-Telegram-User-Id': String(uid)
+           },
+           body: formData
+         });
+         
+         if (response.ok) {
+           const result = await response.json();
+           showSuccessMessage('Фото ресторана успешно обновлено');
+           load(); // Перезагружаем данные для отображения нового изображения
+         } else {
+           const error = await response.json();
+           showErrorMessage('Ошибка при загрузке: ' + (error.detail || 'Неизвестная ошибка'));
+         }
+       } catch (error) {
+         showErrorMessage('Ошибка при загрузке: ' + error.message);
+       }
+     }
+
+    // Переключение статуса ресторана
+    document.getElementById('btnToggleStatus').onclick = async () => {
+      if (!currentRestaurant) return;
+      const enabled = !currentRestaurant.is_enabled;
+      await fetch(api + '/ra/restaurant/status?enabled=' + (enabled ? 'true' : 'false'), { method: 'POST', headers });
+      load();
+    };
+
+         // Заказы
+     document.getElementById('btnOrders').onclick = async () => {
+       document.getElementById('ordersSection').style.display = 'block';
+       await loadOrders();
+     };
+
+    async function loadOrders() {
+      const res = await fetch(api + '/ra/orders', { headers });
+      if (!res.ok) return;
+      const orders = await res.json();
+      renderOrders(orders);
+    }
+
+    function renderOrders(orders) {
+      const container = document.getElementById('ordersList');
+      if (orders.length === 0) {
+        container.innerHTML = '<div class="meta">Заказов пока нет</div>';
+        return;
+      }
+
+      container.innerHTML = orders.map(order => `
+        <div class="order-item">
+          <div class="order-header">
+            <span class="order-id">Заказ #${order.id}</span>
+            <span class="order-status status-${order.status}">${getStatusText(order.status)}</span>
+          </div>
+          <div class="order-details">
+            Сумма: ${order.total_price} ₽ · ${order.delivery_type === 'delivery' ? 'Доставка' : 'Самовывоз'}
+          </div>
+          <div class="order-details">
+            ${order.address ? `Адрес: ${order.address} · ` : ''}Телефон: ${order.phone}
+          </div>
+          <div class="order-items">
+            ${order.items.map(item => `${item.name} x${item.qty}`).join(', ')}
+          </div>
+          <div class="order-details">
+            ${new Date(order.created_at).toLocaleString('ru-RU')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getStatusText(status) {
+      const statusMap = {
+        'sent': 'Отправлен',
+        'accepted': 'Принят',
+        'delivered': 'Доставлен',
+        'cancelled': 'Отменен',
+        'modified': 'Изменен'
+      };
+      return statusMap[status] || status;
+    }
+
+    
+
+    load();
+  </script>
+</body>
+</html>
+

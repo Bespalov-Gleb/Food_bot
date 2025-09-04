@@ -1,0 +1,356 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Yandex Eda MiniApp (MVP)</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/static/styles.v23.css?v=23" />
+</head>
+<body>
+  <div class="container">
+    <h2>Главная</h2>
+    <div id="selections"></div>
+    <div id="restaurants"></div>
+    <div class="nav-container">
+      <a id="navHome" href="#" class="nav-item active">
+        <span class="nav-icon nav-icon-home"></span>
+        <span>Главное</span>
+      </a>
+      <span class="nav-item disabled">
+        <span class="nav-icon nav-icon-promo"></span>
+        <span>Акции</span>
+      </span>
+      <a id="navCart" href="#" class="nav-item">
+        <span class="nav-icon nav-icon-cart"></span>
+        <span>Корзина</span>
+      </a>
+      <a id="navProfile" href="#" class="nav-item">
+        <span class="nav-icon nav-icon-profile"></span>
+        <span>Профиль</span>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    const api = location.origin + '/api';
+    const tg = window.Telegram?.WebApp;
+    const q = new URLSearchParams(location.search);
+    const uid = (q.get('uid') && Number(q.get('uid'))) || tg?.initDataUnsafe?.user?.id || 0;
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};
+    const uidQ = uid ? ('?uid=' + encodeURIComponent(String(uid))) : '';
+    async function loadSelections() {
+      const fallback = [
+        { id: 1, title: 'Выбор пользователей', kind: 'dishes', items: [
+          { title: 'Бургер', image: 'https://via.placeholder.com/240x140?text=Burger', dish_id: 102, restaurant_id: 1 },
+          { title: 'Маргарита', image: 'https://via.placeholder.com/240x140?text=Pizza', dish_id: 201, restaurant_id: 2 },
+          { title: 'Филадельфия', image: 'https://via.placeholder.com/240x140?text=Sushi', dish_id: 401, restaurant_id: 4 },
+          { title: 'Пепперони', image: 'https://via.placeholder.com/240x140?text=Pizza2', dish_id: 301, restaurant_id: 3 },
+        ]},
+        { id: 2, title: 'Топ-рестораны', kind: 'restaurants', items: [
+          { title: 'Вкусно и точка', image: 'https://via.placeholder.com/240x140?text=Rest+1', restaurant_id: 1 },
+          { title: 'Чиббис', image: 'https://via.placeholder.com/240x140?text=Rest+2', restaurant_id: 2 },
+          { title: 'Пиццерия Браво', image: 'https://via.placeholder.com/240x140?text=Rest+3', restaurant_id: 3 },
+          { title: 'СушиМания', image: 'https://via.placeholder.com/240x140?text=Rest+4', restaurant_id: 4 },
+        ]}
+      ];
+      try {
+        // Сначала пытаемся загрузить подборки из нового API
+        const collectionsRes = await fetch(api + '/public/collections');
+        let data = [];
+        
+        if (collectionsRes.ok) {
+          const collections = await collectionsRes.json();
+          if (collections && collections.length > 0) {
+            // Преобразуем подборки в формат для отображения
+            data = collections.map(collection => ({
+              id: collection.id,
+              title: collection.name,
+              description: collection.description,
+              image: collection.image,
+              kind: 'mixed', // Смешанный тип (рестораны и блюда)
+              items: collection.items.map(item => ({
+                id: item.id,
+                title: item.title,
+                subtitle: item.subtitle,
+                image: item.image,
+                type: item.type,
+                item_id: item.item_id,
+                restaurant: item.restaurant,
+                dish: item.dish
+              }))
+            }));
+          }
+        }
+        
+        // Если подборок нет, используем старый API или fallback
+        if (data.length === 0) {
+          const res = await fetch(api + '/selections');
+          let oldData = await res.json();
+          if (!Array.isArray(oldData) || oldData.length === 0) data = fallback;
+          else data = oldData;
+        }
+        const root = document.getElementById('selections');
+        root.innerHTML = '';
+        data.forEach(block => {
+          const sec = document.createElement('div');
+          sec.className = 'section';
+          sec.innerHTML = `<div class="title">${block.title}</div>`;
+          const row = document.createElement('div');
+          // Use carousel for single-visible item with smooth slide
+          const isCarousel = true;
+          if (isCarousel) {
+            row.className = 'carousel';
+            const track = document.createElement('div');
+            track.className = 'carousel-track';
+            let currentIndex = 0;
+            const items = block.items;
+            
+            if (items.length === 0) {
+              // Если нет элементов, показываем сообщение
+              row.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Нет элементов в подборке</div>';
+              return;
+            }
+            
+            const goToSlide = (index) => {
+              currentIndex = index;
+              track.style.transform = `translateX(-${index * 100}%)`;
+            };
+            
+            const nextSlide = () => {
+              currentIndex = (currentIndex + 1) % items.length;
+              goToSlide(currentIndex);
+            };
+            
+            const prevSlide = () => {
+              currentIndex = (currentIndex - 1 + items.length) % items.length;
+              goToSlide(currentIndex);
+            };
+            
+            const prev = document.createElement('button');
+            prev.className = 'carousel-btn prev';
+            prev.textContent = '‹';
+            prev.onclick = prevSlide;
+            
+            const next = document.createElement('button');
+            next.className = 'carousel-btn next';
+            next.textContent = '›';
+            next.onclick = nextSlide;
+            
+            row.appendChild(track);
+            row.appendChild(prev);
+            row.appendChild(next);
+            
+            items.forEach((it, idx) => {
+               const card = document.createElement('div');
+               card.className = 'mini-card';
+               // Отображение для новых типов элементов подборок
+               let cardImage = it.image || 'https://via.placeholder.com/300x200?text=No+Image';
+               let cardTitle = it.title;
+               let cardSubtitle = '';
+               
+               // Если есть данные о ресторане или блюде, используем их
+               if (it.restaurant) {
+                 cardImage = it.restaurant.image || it.image || 'https://via.placeholder.com/300x200?text=Restaurant';
+                 cardTitle = it.title || it.restaurant.name;
+                 cardSubtitle = `★ ${it.restaurant.rating.toFixed(1)} · ${it.restaurant.delivery_time_minutes} мин`;
+               } else if (it.dish) {
+                 cardImage = it.dish.image || it.image || 'https://via.placeholder.com/300x200?text=Dish';
+                 cardTitle = it.title || it.dish.name;
+                 cardSubtitle = `${it.dish.price} ₽`;
+               }
+               
+               card.innerHTML = `
+                 <img src="${cardImage}" alt="${cardTitle}"/>
+                 <div class="cap">${cardTitle}</div>
+                 ${cardSubtitle ? `<div class="subtitle">${cardSubtitle}</div>` : ''}
+               `;
+               card.onclick = () => {
+                 const p = new URLSearchParams(location.search);
+                 if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+                 
+                 // Обработка новых типов элементов подборок
+                 if (it.type === 'dish' && it.item_id) {
+                   location.href = '/static/dish.html?id=' + it.item_id + '&' + p.toString();
+                 } else if (it.type === 'restaurant' && it.item_id) {
+                   location.href = '/static/restaurant.html?id=' + it.item_id + '&' + p.toString();
+                 } else if (block.kind === 'dishes' && it.dish_id) {
+                   location.href = '/static/dish.html?id=' + it.dish_id + '&' + p.toString();
+                 } else if (it.restaurant_id) {
+                   location.href = '/static/restaurant.html?id=' + it.restaurant_id + '&' + p.toString();
+                 }
+               };
+               track.appendChild(card);
+             });
+            // swipe support
+            let startX = 0; let dx = 0; let dragging = false;
+            row.addEventListener('touchstart', (e) => { 
+              dragging = true; 
+              startX = e.touches[0].clientX; 
+              dx = 0; 
+            }, {passive:true});
+            
+            row.addEventListener('touchmove', (e) => { 
+              if (!dragging) return; 
+              dx = e.touches[0].clientX - startX; 
+              track.style.transform = `translateX(-${currentIndex * 100 + dx / row.clientWidth * 100}%)`; 
+            }, {passive:true});
+            
+            row.addEventListener('touchend', () => { 
+              dragging = false; 
+              if (Math.abs(dx) > row.clientWidth * 0.2) { 
+                if (dx < 0) {
+                  nextSlide();
+                } else {
+                  prevSlide();
+                }
+              } else { 
+                goToSlide(currentIndex);
+              } 
+            });
+            
+            // init - начинаем с первого элемента
+            goToSlide(0);
+          } else {
+            row.className = 'hscroll';
+            block.items.forEach(it => {
+              const card = document.createElement('div');
+              card.className = 'mini-card';
+              // Отображение для новых типов элементов подборок
+              let cardImage = it.image;
+              let cardTitle = it.title;
+              let cardSubtitle = '';
+              
+              // Если есть данные о ресторане или блюде, используем их
+              if (it.restaurant) {
+                cardImage = it.restaurant.image || it.image;
+                cardTitle = it.title || it.restaurant.name;
+                cardSubtitle = `★ ${it.restaurant.rating.toFixed(1)} · ${it.restaurant.delivery_time_minutes} мин`;
+              } else if (it.dish) {
+                cardImage = it.dish.image || it.image;
+                cardTitle = it.title || it.dish.name;
+                cardSubtitle = `${it.dish.price} ₽`;
+              }
+              
+              card.innerHTML = `
+                <img src="${cardImage}" alt="${cardTitle}"/>
+                <div class="cap">${cardTitle}</div>
+                ${cardSubtitle ? `<div class="subtitle">${cardSubtitle}</div>` : ''}
+              `;
+              card.onclick = () => {
+                const p = new URLSearchParams(location.search);
+                if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+                
+                // Обработка новых типов элементов подборок
+                if (it.type === 'dish' && it.item_id) {
+                  location.href = '/static/dish.html?id=' + it.item_id + '&' + p.toString();
+                } else if (it.type === 'restaurant' && it.item_id) {
+                  location.href = '/static/restaurant.html?id=' + it.item_id + '&' + p.toString();
+                } else if (block.kind === 'dishes' && it.dish_id) {
+                  location.href = '/static/dish.html?id=' + it.dish_id + '&' + p.toString();
+                } else if (it.restaurant_id) {
+                  location.href = '/static/restaurant.html?id=' + it.restaurant_id + '&' + p.toString();
+                }
+              };
+              row.appendChild(card);
+            });
+          }
+          block.items.forEach(it => {
+            // no-op; items appended above
+          });
+          sec.appendChild(row);
+          root.appendChild(sec);
+        });
+      } catch {
+        const root = document.getElementById('selections');
+        root.innerHTML = '';
+        fallback.forEach(block => {
+          const sec = document.createElement('div');
+          sec.className = 'section';
+          sec.innerHTML = `<div class="title">${block.title}</div>`;
+          const row = document.createElement('div');
+          row.className = 'hscroll';
+          block.items.forEach(it => {
+            const card = document.createElement('div');
+            card.className = 'mini-card';
+            // Отображение для новых типов элементов подборок
+            let cardImage = it.image;
+            let cardTitle = it.title;
+            let cardSubtitle = '';
+            
+            // Если есть данные о ресторане или блюде, используем их
+            if (it.restaurant) {
+              cardImage = it.restaurant.image || it.image;
+              cardTitle = it.title || it.restaurant.name;
+              cardSubtitle = `★ ${it.restaurant.rating.toFixed(1)} · ${it.restaurant.delivery_time_minutes} мин`;
+            } else if (it.dish) {
+              cardImage = it.dish.image || it.image;
+              cardTitle = it.title || it.dish.name;
+              cardSubtitle = `${it.dish.price} ₽`;
+            }
+            
+            card.innerHTML = `
+              <img src="${cardImage}" alt="${cardTitle}"/>
+              <div class="cap">${cardTitle}</div>
+              ${cardSubtitle ? `<div class="subtitle">${cardSubtitle}</div>` : ''}
+            `;
+            card.onclick = () => {
+              const p = new URLSearchParams(location.search);
+              if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+              
+              // Обработка новых типов элементов подборок
+              if (it.type === 'dish' && it.item_id) {
+                location.href = '/static/dish.html?id=' + it.item_id + '&' + p.toString();
+              } else if (it.type === 'restaurant' && it.item_id) {
+                location.href = '/static/restaurant.html?id=' + it.item_id + '&' + p.toString();
+              } else if (block.kind === 'dishes' && it.dish_id) {
+                location.href = '/static/dish.html?id=' + it.dish_id + '&' + p.toString();
+              } else if (it.restaurant_id) {
+                location.href = '/static/restaurant.html?id=' + it.restaurant_id + '&' + p.toString();
+              }
+            };
+            row.appendChild(card);
+          });
+          sec.appendChild(row);
+          root.appendChild(sec);
+        });
+      }
+    }
+    async function loadRestaurants() {
+      const res = await fetch(api + '/restaurants', { headers });
+      const data = await res.json();
+      const root = document.getElementById('restaurants');
+      root.innerHTML = '';
+      data.forEach(r => {
+        const el = document.createElement('div');
+        el.className = 'rest-card';
+        el.innerHTML = `
+          <div class="thumb"><img src="${r.image || 'https://via.placeholder.com/800x400?text=Restaurant'}" alt="${r.name}"/></div>
+          <div class="desc">
+            <div class="title">${r.name}</div>
+            <div class="meta">≈ ${r.delivery_time_minutes} мин · ★ ${r.rating_agg.toFixed(1)}</div>
+          </div>`;
+        el.onclick = () => openMenu(r.id);
+        root.appendChild(el);
+      });
+    }
+
+    async function openMenu(restaurantId) {
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      location.href = `/static/restaurant.html?id=${restaurantId}&${p.toString()}`;
+    }
+
+    loadSelections();
+    loadRestaurants();
+    
+
+    document.getElementById('navHome').onclick = (e) => { e.preventDefault(); const p = new URLSearchParams(location.search); if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1'); location.href = '/static/index.html?' + p.toString(); };
+    document.getElementById('navCart').onclick = (e) => { e.preventDefault(); const p = new URLSearchParams(location.search); if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1'); location.href = '/static/cart.html?' + p.toString(); };
+    document.getElementById('navProfile').onclick = (e) => { e.preventDefault(); const p = new URLSearchParams(location.search); if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1'); location.href = '/static/profile.html?' + p.toString(); };
+
+    
+  </script>
+</body>
+</html>
+

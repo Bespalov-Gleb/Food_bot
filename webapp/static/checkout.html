@@ -1,0 +1,447 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Оформление заказа</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #666;
+      text-decoration: none;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+    
+    .back-link:hover {
+      color: #333;
+    }
+    
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    
+    .section {
+      margin-bottom: 24px;
+    }
+    
+    .label {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+    }
+    
+    .segmented {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .segmented button {
+      flex: 1;
+      padding: 16px 20px;
+      border: 2px solid #e5e7eb;
+      background: white;
+      border-radius: 12px;
+      color: #666;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .segmented button:hover {
+      border-color: #d1d5db;
+      background: #f9fafb;
+    }
+    
+    .segmented button.active {
+      border-color: #dc2626;
+      background: #dc2626;
+      color: white;
+    }
+    
+    .delivery-price {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-top: 8px;
+    }
+    
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: white;
+    }
+    
+    .field span {
+      font-size: 20px;
+      color: #666;
+    }
+    
+    .field input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      color: #333;
+      background: transparent;
+    }
+    
+    .field input::placeholder {
+      color: #9ca3af;
+    }
+    
+    .card-box {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: white;
+      padding: 16px;
+    }
+    
+    .card-box select {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      color: #333;
+      background: transparent;
+    }
+    
+    .checkout-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      padding: 20px;
+      z-index: 1000;
+    }
+    
+    .checkout-content {
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    
+    .summary {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .summary-label {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+    
+    .summary-amount {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+    }
+    
+    .submit-btn {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 200px;
+    }
+    
+    .submit-btn:hover {
+      background: #b91c1c;
+      transform: translateY(-1px);
+    }
+    
+    .submit-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .bottom-spacer {
+      height: 120px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="#" id="back" class="back-link">← Назад</a>
+    <h1 class="page-title">Оформление заказа</h1>
+
+    <div class="section">
+      <div class="label" id="restaurantName">Загрузка...</div>
+      <div class="segmented" id="segDelivery">
+        <button data-val="delivery" class="active">
+          <span>🚚</span>
+          <div>Доставка</div>
+        </button>
+        <button data-val="pickup">
+          <span>🏪</span>
+          <div>Навынос</div>
+        </button>
+      </div>
+      <div class="delivery-price" id="deliveryPrice"></div>
+    </div>
+
+    <div class="section">
+      <div class="label">Контакты</div>
+      <div class="field"><span>📞</span><input id="phone" placeholder="+7..." /></div>
+    </div>
+
+    <div class="section" id="addrBlock">
+      <div class="label">Доставка</div>
+      <div class="field"><span>📍</span><input id="address" placeholder="Город, улица, дом" /></div>
+      <div class="field" style="margin-top:12px"><span>💬</span><input id="comment" placeholder="Комментарий к заказу" /></div>
+    </div>
+
+    <div class="section">
+      <div class="label">Оплата</div>
+      <div class="card-box">
+        <select id="payment">
+          <option value="cash">Наличными курьеру</option>
+          <option value="card_to_courier">Картой курьеру</option>
+          <option value="transfer">Переводом</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="bottom-spacer"></div>
+  </div>
+  
+  <div class="checkout-footer">
+    <div class="checkout-content">
+      <div class="summary" id="summary">
+        <span class="summary-label">К оплате:</span>
+        <span class="summary-amount">0 ₽</span>
+      </div>
+      <button id="submit" class="submit-btn">Оформить заказ</button>
+    </div>
+  </div>
+  
+  <script>
+    const api = location.origin + '/api';
+    let cart = null;
+    let dishesMap = new Map();
+    let restaurantName = '';
+    const tg = window.Telegram?.WebApp;
+    const q = new URLSearchParams(location.search);
+    const uid = (q.get('uid') && Number(q.get('uid'))) || (tg?.initDataUnsafe?.user?.id || 0);
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid), 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    const url = new URL(location.href);
+    const activeRestaurantId = Number(url.searchParams.get('r')) || 0;
+
+    async function load() {
+      const res = await fetch(api + '/cart' + (uid ? ('?uid=' + uid) : ''), { headers });
+      cart = await res.json();
+      if (!cart.items.length) {
+        document.getElementById('summary').textContent = 'Корзина пуста';
+        document.getElementById('submit').disabled = true;
+        return;
+      }
+      
+      // Загружаем название ресторана
+      if (activeRestaurantId) {
+        try {
+          const restaurantRes = await fetch(api + '/restaurants/' + activeRestaurantId + (uid ? ('?uid=' + uid) : ''), { headers });
+          if (restaurantRes.ok) {
+            const restaurantData = await restaurantRes.json();
+            restaurantName = restaurantData.name;
+            document.getElementById('restaurantName').textContent = restaurantName;
+          }
+        } catch (error) {
+          console.log('Не удалось загрузить данные ресторана:', error);
+          document.getElementById('restaurantName').textContent = 'Ресторан';
+        }
+      } else {
+        document.getElementById('restaurantName').textContent = 'Ресторан';
+      }
+      
+      // Загружаем данные пользователя для автозаполнения
+      if (uid) {
+        try {
+          const userRes = await fetch(api + '/users/me?uid=' + uid, { headers });
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            if (userData.phone) {
+              document.getElementById('phone').value = userData.phone;
+            }
+            if (userData.address) {
+              document.getElementById('address').value = userData.address;
+            }
+          }
+        } catch (error) {
+          console.log('Не удалось загрузить данные пользователя:', error);
+        }
+      }
+      
+      const ids = [...new Set(cart.items.map(i => i.dish_id))];
+      const dishes = await (await fetch(api + '/dishes?ids=' + ids.join(',') + (uid ? ('&uid=' + uid) : ''), { headers })).json();
+      dishesMap = new Map(dishes.map(d => [d.id, d]));
+      const optionIds = [...new Set(cart.items.flatMap(i => (i.chosen_options || [])))];
+      let optionsMap = new Map();
+      if (optionIds.length) {
+        const opts = await (await fetch(api + '/options/lookup?ids=' + optionIds.join(',') + (uid ? ('&uid=' + uid) : ''), { headers })).json();
+        optionsMap = new Map(opts.map(o => [o.id, o]));
+      }
+      let subtotal = cart.items.reduce((sum, it) => {
+        const d = dishesMap.get(it.dish_id);
+        if (!d || (activeRestaurantId && d.restaurant_id !== activeRestaurantId)) return sum;
+        const chosen = (it.chosen_options || []).map(id => optionsMap.get(id)).filter(Boolean);
+        const delta = chosen.reduce((s, o) => s + (o.price_delta || 0), 0);
+        return sum + (d.price + delta) * it.qty;
+      }, 0);
+      
+      // доставка
+      let delivery = 0;
+      const deliveryType = currentDeliveryType();
+      if (deliveryType === 'delivery') {
+        if (activeRestaurantId) {
+          try {
+            const r = await (await fetch(api + '/restaurants/' + activeRestaurantId + (uid ? ('?uid=' + uid) : ''), { headers })).json();
+            delivery = r.delivery_fee || 0;
+          } catch (error) {
+            console.log('Не удалось загрузить данные ресторана:', error);
+          }
+        } else {
+          const anyDish = cart.items.map(i => dishesMap.get(i.dish_id)).find(Boolean);
+          if (anyDish) {
+            try {
+              const r = await (await fetch(api + '/restaurants/' + anyDish.restaurant_id + (uid ? ('?uid=' + uid) : ''), { headers })).json();
+              delivery = r.delivery_fee || 0;
+            } catch (error) {
+              console.log('Не удалось загрузить данные ресторана:', error);
+            }
+          }
+        }
+      }
+      
+      const total = subtotal + delivery;
+      document.querySelector('.summary-label').textContent = 'К оплате:';
+      document.querySelector('.summary-amount').textContent = total + ' ₽';
+      document.getElementById('deliveryPrice').textContent = (deliveryType === 'delivery') ? ('Доставка: ' + delivery + ' ₽') : 'Навынос — бесплатно';
+    }
+
+    function currentDeliveryType() { 
+      return document.querySelector('#segDelivery .active')?.getAttribute('data-val') || 'delivery'; 
+    }
+
+    function validate() {
+      const deliveryType = currentDeliveryType();
+      const phone = document.getElementById('phone').value.trim();
+      const address = document.getElementById('address').value.trim();
+      if (!phone) return { ok: false, msg: 'Укажите телефон' };
+      if (deliveryType === 'delivery' && !address) return { ok: false, msg: 'Укажите адрес' };
+      return { ok: true };
+    }
+
+    async function submit() {
+      const v = validate();
+      if (!v.ok) { alert(v.msg); return; }
+      const userId = tg?.initDataUnsafe?.user?.id || 0;
+      const items = cart.items.map(it => {
+        const d = dishesMap.get(it.dish_id);
+        if (!d || (activeRestaurantId && d.restaurant_id !== activeRestaurantId)) return null;
+        return { dish_id: it.dish_id, name: d?.name || String(it.dish_id), price: d?.price || 0, qty: it.qty, chosen_options: it.chosen_options || [] };
+      }).filter(Boolean);
+      const restaurantId = activeRestaurantId || (items.length ? (dishesMap.get(cart.items[0].dish_id)?.restaurant_id || 0) : 0);
+      const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+      const payload = {
+        user_id: userId,
+        restaurant_id: restaurantId,
+        total_price: total,
+        delivery_type: currentDeliveryType(),
+        address: document.getElementById('address').value.trim() || null,
+        phone: document.getElementById('phone').value.trim(),
+        payment_method: document.getElementById('payment').value,
+        client_comment: document.getElementById('comment').value.trim() || null,
+        items
+      };
+      const res = await fetch(api + '/orders' + (uid ? ('?uid=' + uid) : ''), { method: 'POST', headers, body: JSON.stringify(payload) });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert('Ошибка: ' + (err.detail || res.status));
+        return;
+      }
+      const data = await res.json();
+      await fetch(api + '/cart/clear?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { method: 'POST', headers });
+      alert('Заказ оформлен № ' + data.id);
+      try { window.Telegram?.WebApp?.close(); } catch (e) {}
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      location.href = '/static/index.html?' + p.toString();
+    }
+
+    // segmented control handlers
+    document.querySelectorAll('#segDelivery button').forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll('#segDelivery button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        // toggle address block
+        const v = currentDeliveryType();
+        document.getElementById('addrBlock').style.display = (v === 'delivery') ? 'block' : 'none';
+        load();
+      };
+    });
+    
+    document.getElementById('back').onclick = (e) => { 
+      e.preventDefault(); 
+      const p = new URLSearchParams(location.search); 
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning','1'); 
+      if (activeRestaurantId) p.set('r', String(activeRestaurantId)); 
+      location.href = '/static/cart.html?' + p.toString(); 
+    };
+    
+    document.getElementById('submit').onclick = submit;
+    load();
+  </script>
+</body>
+</html>
+

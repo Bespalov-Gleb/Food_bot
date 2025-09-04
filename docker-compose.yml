@@ -1,0 +1,58 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-yandex_eda}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/yandex_eda}
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      WEBAPP_URL: ${WEBAPP_URL:-http://localhost:8000}
+      SUPER_ADMIN_IDS: ${SUPER_ADMIN_IDS:-}
+      ADMIN_CODE: ${ADMIN_CODE:-}
+      ADMIN_SITE_SECRET: ${ADMIN_SITE_SECRET:-dev-secret}
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000', timeout=3).status<500 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  bot:
+    build: .
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      PUBLIC_WEBAPP_URL: ${WEBAPP_URL:-http://localhost:8000}
+      INTERNAL_API_URL: http://api:8000
+      SUPER_ADMIN_IDS: ${SUPER_ADMIN_IDS:-}
+      ADMIN_CODE: ${ADMIN_CODE:-}
+    command: ["python", "bot/main.py"]
+
+  migrate:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/yandex_eda}
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+
+volumes:
+  pgdata: {}
+

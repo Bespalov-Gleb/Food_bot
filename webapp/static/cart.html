@@ -1,0 +1,926 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Корзина</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+      position: relative;
+      padding-bottom: 120px;
+    }
+    
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      border-bottom: 1px solid #e5e7eb;
+      background: white;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .back-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: none;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+    }
+    
+    .header-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .clear-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: none;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+    }
+    
+    /* Restaurant Tabs */
+    .restaurant-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .restaurant-tab {
+      flex-shrink: 0;
+      padding: 12px 20px;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      background: #f3f4f6;
+      color: #666;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      min-width: 140px;
+    }
+    
+    .restaurant-tab.active {
+      border-color: #dc2626;
+      background: #dc2626;
+      color: white;
+    }
+    
+    .restaurant-tab-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    
+    .restaurant-tab-name {
+      font-weight: 600;
+      text-align: center;
+    }
+    
+    .restaurant-tab-price {
+      color: inherit;
+    }
+    
+    .restaurant-tab-time {
+      color: inherit;
+    }
+    
+    /* Cart Items */
+    .cart-items {
+      padding: 16px;
+    }
+    
+    .cart-item {
+      display: flex;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid #f3f4f6;
+      align-items: flex-start;
+    }
+    
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+    
+    .cart-item-image {
+      width: 100px;
+      height: 100px;
+      border-radius: 12px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    
+    .cart-item-content {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .cart-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    
+    .cart-item-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      flex-grow: 1;
+      margin-right: 10px;
+    }
+    
+    .cart-item-description {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+    
+    .cart-item-price {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
+    .cart-item-weight {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+    
+    .cart-item-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    
+    .qty-btn:hover {
+      background: #f3f4f6;
+    }
+    
+    .qty-btn.plus {
+      background: #dc2626;
+      color: white;
+      border-color: #dc2626;
+    }
+    
+    .qty-btn.plus:hover {
+      background: #b91c1c;
+    }
+    
+    .qty-display {
+      min-width: 30px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    
+    /* Open Menu Button */
+    .open-menu-btn {
+      margin: 16px;
+      width: calc(100% - 32px);
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 12px;
+      color: #666;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .open-menu-btn:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+    }
+    
+    /* Bottom Checkout Bar */
+    .checkout-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      padding: 16px;
+      z-index: 1000;
+    }
+    
+    .checkout-content {
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    
+    .cutlery-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .cutlery-icon {
+      font-size: 20px;
+      color: #666;
+    }
+    
+    .cutlery-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .cutlery-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    
+    .cutlery-btn:hover {
+      background: #f3f4f6;
+    }
+    
+    .cutlery-count {
+      min-width: 20px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    
+    .checkout-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .total-sum {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .checkout-btn {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .checkout-btn:hover {
+      background: #b91c1c;
+      transform: translateY(-1px);
+    }
+    
+    .checkout-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .checkout-btn.min-order-warning {
+      background: #f3f4f6;
+      color: #666;
+      border: 1px solid #d1d5db;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .checkout-btn.min-order-warning:hover {
+      background: #f3f4f6;
+      transform: none;
+    }
+    
+    /* Empty cart */
+    .empty-cart {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+    
+    .empty-cart-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    .empty-cart-text {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .empty-cart-subtext {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    /* Too many carts page */
+    .too-many-carts {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .too-many-header h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .too-many-header p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .carts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .cart-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 15px;
+      background: #f3f4f6;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .cart-card-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cart-card-name {
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .cart-card-items {
+      display: flex;
+      gap: 5px;
+    }
+
+    .cart-item-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .cart-card-delete {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: none;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+    }
+    
+    .too-many-footer {
+      margin-top: 30px;
+      padding: 20px;
+    }
+    
+    .done-btn {
+      width: 100%;
+      padding: 16px;
+      background: #6b7280;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .done-btn:hover {
+      background: #4b5563;
+    }
+
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <button class="back-btn" onclick="goBack()">×</button>
+        <div class="header-title">Корзина</div>
+      </div>
+      <button class="clear-btn" onclick="clearCart()">🗑️</button>
+    </div>
+    
+    <!-- Restaurant Tabs -->
+    <div class="restaurant-tabs" id="restaurantTabs"></div>
+    
+    <!-- Cart Items -->
+    <div class="cart-items" id="cartItems"></div>
+    
+    <!-- Open Menu Button -->
+    <button class="open-menu-btn" id="openMenuBtn" onclick="openMenu()">Открыть меню</button>
+    
+    <!-- Bottom Checkout Bar -->
+    <div class="checkout-bar">
+      <div class="checkout-content">
+        <div class="cutlery-section">
+          <span class="cutlery-icon">🍴</span>
+          <div class="cutlery-controls">
+            <button class="cutlery-btn" onclick="updateCutlery(-1)">−</button>
+            <span class="cutlery-count" id="cutleryCount">0</span>
+            <button class="cutlery-btn" onclick="updateCutlery(1)">+</button>
+          </div>
+        </div>
+        <div class="checkout-right">
+          <div class="total-sum" id="totalSum">Итого 0 ₽</div>
+          <button class="checkout-btn" id="checkoutBtn" onclick="proceedToCheckout()" disabled>Далее</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const api = location.origin + '/api';
+    const tg = window.Telegram?.WebApp;
+    const q = new URLSearchParams(location.search);
+    const uid = (q.get('uid') && Number(q.get('uid'))) || tg?.initDataUnsafe?.user?.id || 0;
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};
+    
+    let cart = null;
+    let dishesMap = new Map();
+    let restaurantsMap = new Map();
+    let optionsMap = new Map();
+    let cutleryCount = 0;
+    
+    const url = new URL(location.href);
+    let activeRestaurantId = Number(url.searchParams.get('r')) || 0;
+    let restIdsCached = [];
+
+    async function load() {
+      try {
+        console.log('Loading cart...');
+        const res = await fetch(api + '/cart' + (uid ? ('?uid=' + uid) : ''), { headers });
+        console.log('Cart response status:', res.status);
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        cart = await res.json();
+        console.log('Cart data:', cart);
+        console.log('Cart items count:', cart.items?.length || 0);
+        
+        if (!cart.items || !cart.items.length) {
+          console.log('Cart is empty, showing empty state');
+          showEmptyCart();
+          return;
+        }
+        
+        const ids = [...new Set(cart.items.map(i => i.dish_id))];
+        console.log('Dish IDs to fetch:', ids);
+        
+        const dishes = await (await fetch(api + '/dishes?ids=' + ids.join(',') + (uid ? ('&uid=' + uid) : ''), { headers })).json();
+        console.log('Dishes loaded:', dishes.length);
+        dishesMap = new Map(dishes.map(d => [d.id, d]));
+        
+        const optionIds = [...new Set(cart.items.flatMap(i => (i.chosen_options || [])))];
+        if (optionIds.length) {
+          const opts = await (await fetch(api + '/options/lookup?ids=' + optionIds.join(','))).json();
+          optionsMap = new Map(opts.map(o => [o.id, o]));
+        }
+        
+        const restIds = [...new Set(cart.items.map(i => dishesMap.get(i.dish_id)?.restaurant_id))].filter(Boolean);
+        console.log('Restaurant IDs:', restIds);
+        
+        // Проверяем количество ресторанов
+        if (restIds.length > 4) {
+          showTooManyRestaurants(restIds);
+          return;
+        }
+        
+        const resR = await fetch(api + '/restaurants/_bulk?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : ''), { headers });
+        const rests = resR.ok ? await resR.json() : await (await fetch(api + '/restaurants/_by-ids?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : ''), { headers })).json();
+        restaurantsMap = new Map(rests.map(r => [r.id, r]));
+        
+        if (!activeRestaurantId) activeRestaurantId = restIds[0];
+        restIdsCached = restIds;
+        
+        console.log('Rendering restaurant tabs and cart items...');
+        renderRestaurantTabs();
+        renderCartItems();
+        updateCheckoutBar();
+        
+      } catch (error) {
+        console.error('Error loading cart:', error);
+        showEmptyCart();
+      }
+    }
+
+    function showEmptyCart() {
+      // Восстанавливаем отображение элементов
+      document.getElementById('restaurantTabs').style.display = 'flex';
+      document.getElementById('openMenuBtn').style.display = 'block';
+      document.getElementById('checkout-bar').style.display = 'block';
+      
+      document.getElementById('cartItems').innerHTML = `
+        <div class="empty-cart">
+          <div class="empty-cart-icon">🛒</div>
+          <div class="empty-cart-text">Корзина пуста</div>
+          <div class="empty-cart-subtext">Добавьте блюда из меню ресторана</div>
+        </div>
+      `;
+      document.getElementById('restaurantTabs').innerHTML = '';
+      updateCheckoutBar();
+    }
+
+    function showTooManyRestaurants(restIds) {
+      // Скрываем обычные элементы корзины
+      document.getElementById('restaurantTabs').style.display = 'none';
+      document.getElementById('openMenuBtn').style.display = 'none';
+      document.getElementById('checkout-bar').style.display = 'none';
+      
+      // Показываем страницу "Слишком много корзин"
+      document.getElementById('cartItems').innerHTML = `
+        <div class="too-many-carts">
+          <div class="too-many-header">
+            <h2>Слишком много корзин</h2>
+            <p>Удалите корзину, чтобы собрать новую в заведении</p>
+          </div>
+          <div class="carts-list" id="cartsList"></div>
+          <div class="too-many-footer">
+            <button class="done-btn" onclick="goBack()">Готово</button>
+          </div>
+        </div>
+      `;
+      
+      // Загружаем и отображаем список корзин
+      loadCartsList(restIds);
+    }
+    
+    async function loadCartsList(restIds) {
+      try {
+        // Получаем данные ресторанов
+        const resR = await fetch(api + '/restaurants/_bulk?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : ''), { headers });
+        const rests = resR.ok ? await resR.json() : await (await fetch(api + '/restaurants/_by-ids?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : ''), { headers })).json();
+        
+        // Группируем товары по ресторанам
+        const restaurantItems = {};
+        restIds.forEach(restId => {
+          restaurantItems[restId] = cart.items.filter(item => {
+            const dish = dishesMap.get(item.dish_id);
+            return dish && dish.restaurant_id === restId;
+          });
+        });
+        
+        // Отображаем список корзин
+        const cartsList = document.getElementById('cartsList');
+        cartsList.innerHTML = '';
+        
+        restIds.forEach(restId => {
+          const restaurant = rests.find(r => r.id === restId);
+          const items = restaurantItems[restId] || [];
+          
+          if (restaurant && items.length > 0) {
+            const cartCard = document.createElement('div');
+            cartCard.className = 'cart-card';
+            
+            // Получаем изображения первых товаров
+            const itemImages = items.slice(0, 3).map(item => {
+              const dish = dishesMap.get(item.dish_id);
+              return dish?.image || 'https://via.placeholder.com/60x60?text=No+Image';
+            });
+            
+            cartCard.innerHTML = `
+              <div class="cart-card-content">
+                <div class="cart-card-name">${restaurant.name}</div>
+                <div class="cart-card-items">
+                  ${itemImages.map(img => `<img src="${img}" alt="Товар" class="cart-item-thumb" />`).join('')}
+                </div>
+              </div>
+              <button class="cart-card-delete" onclick="deleteRestaurantCart(${restId})">🗑️</button>
+            `;
+            
+            cartsList.appendChild(cartCard);
+          }
+        });
+      } catch (error) {
+        console.error('Error loading carts list:', error);
+      }
+    }
+    
+    async function deleteRestaurantCart(restaurantId) {
+      if (confirm('Удалить корзину этого ресторана?')) {
+        try {
+          await fetch(api + '/cart/clear?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { method: 'POST', headers });
+          // Перезагружаем корзину
+          await load();
+        } catch (error) {
+          console.error('Error deleting restaurant cart:', error);
+        }
+      }
+    }
+
+    function renderRestaurantTabs() {
+      const tabs = document.getElementById('restaurantTabs');
+      tabs.innerHTML = '';
+      
+      console.log('Rendering restaurant tabs...');
+      console.log('Restaurant IDs cached:', restIdsCached);
+      console.log('Restaurants map:', restaurantsMap);
+      
+      restIdsCached.forEach(id => {
+        const r = restaurantsMap.get(id);
+        if (!r) {
+          console.log('Restaurant not found for ID:', id);
+          return;
+        }
+        
+        console.log('Rendering tab for restaurant:', r);
+        
+        const total = calcTotalForRestaurant(id);
+        const deliveryTime = r.delivery_time_minutes 
+          ? `${r.delivery_time_minutes} мин`
+          : '60 мин';
+        
+        const tab = document.createElement('button');
+        tab.className = 'restaurant-tab' + (id === activeRestaurantId ? ' active' : '');
+        tab.onclick = () => {
+          activeRestaurantId = id;
+          renderRestaurantTabs();
+          renderCartItems();
+          updateCheckoutBar();
+        };
+        
+        tab.innerHTML = `
+          <div class="restaurant-tab-name">${r.name}</div>
+          <div class="restaurant-tab-info">
+            <span class="restaurant-tab-price">${total} ₽</span>
+            <span class="restaurant-tab-time">${deliveryTime}</span>
+          </div>
+        `;
+        
+        tabs.appendChild(tab);
+      });
+    }
+
+    function renderCartItems() {
+      const root = document.getElementById('cartItems');
+      root.innerHTML = '';
+      
+      console.log('Rendering cart items...');
+      console.log('Cart:', cart);
+      console.log('Active restaurant ID:', activeRestaurantId);
+      console.log('Dishes map:', dishesMap);
+      
+      const items = cart.items.filter(it => {
+        const d = dishesMap.get(it.dish_id);
+        return d && d.restaurant_id === activeRestaurantId;
+      });
+      
+      console.log('Filtered items for active restaurant:', items);
+      
+      if (items.length === 0) {
+        root.innerHTML = '<div class="empty-cart"><div class="empty-cart-text">Нет товаров в корзине</div></div>';
+        return;
+      }
+      
+      items.forEach(it => {
+        const d = dishesMap.get(it.dish_id);
+        if (!d) {
+          console.log('Dish not found for item:', it);
+          return;
+        }
+        
+        console.log('Rendering item:', it, 'dish:', d);
+        
+        const chosen = (it.chosen_options || []).map(id => optionsMap.get(id)).filter(Boolean);
+        const delta = chosen.reduce((s, o) => s + (o.price_delta || 0), 0);
+        const unitPrice = (d.price || 0) + delta;
+        const totalPrice = unitPrice * it.qty;
+        
+        const optsLabel = chosen.length ? chosen.map(o => o.name).join(', ') : '';
+        const weight = d.weight ? `${d.weight} г` : '';
+        
+        const el = document.createElement('div');
+        el.className = 'cart-item';
+        
+        el.innerHTML = `
+          <img src="${d.image || 'https://via.placeholder.com/80x80?text=No+Image'}" alt="${d.name}" class="cart-item-image" />
+          <div class="cart-item-content">
+            <div class="cart-item-header">
+              <div class="cart-item-name">${d.name}</div>
+              <div class="cart-item-controls">
+                <button class="qty-btn" data-act="dec">−</button>
+                <span class="qty-display">${it.qty}</span>
+                <button class="qty-btn plus" data-act="inc">+</button>
+              </div>
+            </div>
+            <div class="cart-item-description">${optsLabel}</div>
+            <div class="cart-item-price">${totalPrice} ₽</div>
+            <div class="cart-item-weight">${weight}</div>
+          </div>
+        `;
+        
+        el.querySelector('[data-act="inc"]').onclick = () => updateQty(it.id, it.qty + 1);
+        el.querySelector('[data-act="dec"]').onclick = () => updateQty(it.id, Math.max(1, it.qty - 1));
+        
+        root.appendChild(el);
+      });
+    }
+
+    function calcTotalForRestaurant(restaurantId) {
+      return cart.items.reduce((sum, it) => {
+        const d = dishesMap.get(it.dish_id);
+        if (!d || d.restaurant_id !== restaurantId) return sum;
+        const chosen = (it.chosen_options || []).map(id => optionsMap.get(id)).filter(Boolean);
+        const delta = chosen.reduce((s, o) => s + (o.price_delta || 0), 0);
+        return sum + (d.price + delta) * it.qty;
+      }, 0);
+    }
+
+    function updateCheckoutBar() {
+      const total = calcTotalForRestaurant(activeRestaurantId);
+      const restaurant = restaurantsMap.get(activeRestaurantId);
+      const minOrderAmount = restaurant?.delivery_min_sum || 0;
+      
+      document.getElementById('totalSum').textContent = `Итого ${total} ₽`;
+      
+      const checkoutBtn = document.getElementById('checkoutBtn');
+      
+      if (total <= 0) {
+        checkoutBtn.disabled = true;
+        checkoutBtn.textContent = 'Далее';
+        checkoutBtn.className = 'checkout-btn';
+      } else if (minOrderAmount > 0 && total < minOrderAmount) {
+        // Не хватает минимальной суммы
+        const remaining = minOrderAmount - total;
+        checkoutBtn.disabled = true;
+        checkoutBtn.textContent = `Добавьте еще на ${remaining} ₽`;
+        checkoutBtn.className = 'checkout-btn min-order-warning';
+      } else {
+        // Минимальная сумма достигнута
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Далее';
+        checkoutBtn.className = 'checkout-btn';
+      }
+      
+      document.getElementById('cutleryCount').textContent = cutleryCount;
+    }
+
+    async function updateQty(itemId, qty) {
+      try {
+        await fetch(api + '/cart/items/' + itemId + '?qty=' + qty + (uid ? ('&uid=' + uid) : ''), { method: 'PATCH', headers });
+        await load();
+      } catch (error) {
+        console.error('Error updating quantity:', error);
+      }
+    }
+
+    function updateCutlery(delta) {
+      cutleryCount = Math.max(0, cutleryCount + delta);
+      document.getElementById('cutleryCount').textContent = cutleryCount;
+      updateCheckoutBar();
+    }
+
+    function openMenu() {
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      location.href = '/static/restaurant.html?id=' + activeRestaurantId + '&' + p.toString();
+    }
+
+    function proceedToCheckout() {
+      const total = calcTotalForRestaurant(activeRestaurantId);
+      const restaurant = restaurantsMap.get(activeRestaurantId);
+      const minOrderAmount = restaurant?.delivery_min_sum || 0;
+      
+      if (minOrderAmount > 0 && total < minOrderAmount) {
+        alert(`Минимальная сумма заказа: ${minOrderAmount} ₽. Добавьте еще товаров на ${minOrderAmount - total} ₽`);
+        return;
+      }
+      
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      p.set('r', String(activeRestaurantId));
+      location.href = '/static/checkout.html?' + p.toString();
+    }
+
+    function goBack() {
+      history.back();
+    }
+
+    async function clearCart() {
+      if (confirm('Очистить корзину?')) {
+        try {
+          // Очищаем корзину через API
+          await fetch(api + '/cart/clear' + (uid ? ('?uid=' + uid) : ''), { 
+            method: 'POST', 
+            headers 
+          });
+          
+          // Перезагружаем корзину для отображения пустого состояния
+          await load();
+        } catch (error) {
+          console.error('Error clearing cart:', error);
+          alert('Ошибка при очистке корзины');
+        }
+      }
+    }
+    
+    
+
+    // Загружаем корзину при старте
+    load();
+    
+    
+  </script>
+  
+</body>
+</html>
+

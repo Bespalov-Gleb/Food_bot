@@ -1,0 +1,322 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Блюдо</title>
+  <link rel="stylesheet" href="/static/styles.v23.css?v=19" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom:8px"><a id="back" href="#">Назад</a></div>
+    <div class="dish-hero"><img id="heroImg" src="" alt=""/></div>
+    <div id="header"></div>
+    <div id="desc" class="meta"></div>
+    <div id="opt"></div>
+    <div class="buy-bar">
+      <div class="qty">
+        <button id="minus">−</button>
+        <span id="qty" style="min-width:24px;text-align:center">1</span>
+        <button id="plus">+</button>
+      </div>
+      <button id="add" class="primary">В корзину <span id="sumBtn"></span></button>
+    </div>
+    <div class="nav-container">
+      <a id="navHome" href="#" class="nav-item">
+        <span class="nav-icon nav-icon-home"></span>
+        <span>Главное</span>
+      </a>
+      <span class="nav-item disabled">
+        <span class="nav-icon nav-icon-promo"></span>
+        <span>Акции</span>
+      </span>
+      <a id="navCart" href="#" class="nav-item">
+        <span class="nav-icon nav-icon-cart"></span>
+        <span>Корзина</span>
+      </a>
+      <a id="navMenu" href="#" class="nav-item">
+        <span class="nav-icon nav-icon-menu"></span>
+        <span>Меню</span>
+      </a>
+      <a id="navProfile" href="#" class="nav-item">
+        <span class="nav-icon nav-icon-profile"></span>
+        <span>Профиль</span>
+      </a>
+    </div>
+  </div>
+  <script>
+    console.log('Script started');
+    
+    const api = location.origin + '/api';
+    console.log('API URL:', api);
+    
+    const url = new URL(location.href);
+    const dishId = Number(url.searchParams.get('id'));
+    console.log('Dish ID from URL:', dishId);
+    
+    const p = new URLSearchParams(location.search);
+    const tg = window.Telegram?.WebApp;
+    const uid = (p.get('uid') && Number(p.get('uid'))) || tg?.initDataUnsafe?.user?.id || 0;
+    console.log('User ID:', uid);
+    
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid), 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    console.log('Headers:', headers);
+    
+    if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+    let dish = null;
+    let qty = 1;
+    let groups = [];
+    let options = [];
+    const selected = new Map(); // group_id -> Set<option_id>
+
+    async function load() {
+      console.log('Load function called');
+      try {
+        const [dRes, oRes] = await Promise.all([
+          fetch(api + '/dishes/' + dishId, { headers }),
+          fetch(api + '/dishes/' + dishId + '/options', { headers }),
+        ]);
+        console.log('Fetch responses received');
+        
+        dish = await dRes.json();
+        console.log('Loaded dish:', dish);
+        console.log('Dish restaurant_id:', dish.restaurant_id);
+        console.log('Dish id:', dish.id);
+        
+        const data = await oRes.json();
+        groups = data.groups || [];
+        options = data.options || [];
+        console.log('Loaded options data:', data);
+        
+        renderHeader();
+        renderOptions();
+        bindNav();
+        updateValidity();
+        console.log('Load function completed successfully');
+      } catch (error) {
+        console.error('Error in load function:', error);
+      }
+    }
+
+    function calcTotal() {
+      let total = dish.price * qty;
+      for (const [gid, set] of selected.entries()) {
+        for (const oid of set.values()) {
+          const opt = options.find(o => o.id === oid);
+          if (opt) total += (opt.price_delta || 0) * qty;
+        }
+      }
+      return total;
+    }
+
+    function renderHeader() {
+      const h = document.getElementById('header');
+      const img = document.getElementById('heroImg');
+      img.src = dish.image;
+      img.alt = dish.name;
+      h.innerHTML = `<h2>${dish.name}</h2>`;
+      document.getElementById('desc').textContent = dish.description || '';
+      document.getElementById('sumBtn').textContent = calcTotal() + ' р';
+    }
+
+    function renderOptions() {
+      const root = document.getElementById('opt');
+      root.innerHTML = '';
+      groups.forEach(g => {
+        const block = document.createElement('div');
+        block.className = 'restaurant';
+        block.innerHTML = `<div class="title">${g.name} ${g.required ? '(обязательно)' : ''}</div>`;
+        const list = document.createElement('div');
+        options.filter(o => o.group_id === g.id).forEach(o => {
+          const id = `g${g.id}_o${o.id}`;
+          const input = document.createElement('input');
+          input.type = (g.max_select === 1 && g.min_select <= 1) ? 'radio' : 'checkbox';
+          input.name = 'g' + g.id;
+          input.id = id;
+          input.value = o.id; // Добавляем value с ID опции
+          const set = selected.get(g.id);
+          if (set && set.has(o.id)) input.checked = true;
+          input.onchange = () => toggleOption(g, o, input.checked);
+          const label = document.createElement('label');
+          label.htmlFor = id;
+          label.textContent = `${o.name}${o.price_delta ? ' (+' + o.price_delta + ' р)' : ''}`;
+          const row = document.createElement('div');
+          row.appendChild(input);
+          row.appendChild(label);
+          list.appendChild(row);
+        });
+        block.appendChild(list);
+        root.appendChild(block);
+      });
+    }
+
+    function updateValidity() {
+      let ok = true;
+      for (const g of groups) {
+        const set = selected.get(g.id) || new Set();
+        const count = set.size;
+        if (count < (g.required ? Math.max(1, g.min_select) : g.min_select)) ok = false;
+        if (g.max_select > 0 && count > g.max_select) ok = false;
+      }
+      document.getElementById('add').disabled = !ok;
+      const sumEl = document.getElementById('sumBtn');
+      if (sumEl) sumEl.textContent = calcTotal() + ' р';
+    }
+
+    function toggleOption(group, option, checked) {
+      if (!selected.has(group.id)) selected.set(group.id, new Set());
+      const set = selected.get(group.id);
+      if (group.max_select === 1) set.clear();
+      if (checked) set.add(option.id); else set.delete(option.id);
+      updateValidity();
+    }
+
+    document.getElementById('minus').onclick = () => { qty = Math.max(1, qty-1); document.getElementById('qty').textContent = String(qty); updateValidity(); };
+    document.getElementById('plus').onclick = () => { qty = qty+1; document.getElementById('qty').textContent = String(qty); updateValidity(); };
+    document.getElementById('add').onclick = async () => {
+      console.log('Add button clicked');
+      
+      const addBtn = document.getElementById('add');
+      const sumBtn = document.getElementById('sumBtn');
+      
+      // Если кнопка уже в режиме "Далее", переходим в корзину
+      if (addBtn.textContent.includes('Далее')) {
+        console.log('Button is in "Далее" mode, redirecting to cart');
+        const q = new URLSearchParams(location.search);
+        if (!q.get('ngrok-skip-browser-warning')) q.set('ngrok-skip-browser-warning','1');
+        location.href = '/static/cart.html?' + q.toString();
+        return;
+      }
+      
+      console.log('Processing add to cart...');
+      const qty = parseInt(document.getElementById('qty').textContent);
+      const chosen = [];
+      
+      // Собираем все выбранные опции (и чекбоксы, и радиокнопки)
+      document.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked').forEach(cb => {
+        chosen.push(parseInt(cb.value));
+      });
+      
+      console.log('Quantity:', qty);
+      console.log('Chosen options:', chosen);
+      
+      try {
+        console.log('Adding to cart:', { restaurant_id: dish.restaurant_id, dish_id: dish.id, qty, chosen_options: chosen });
+        console.log('Dish object:', dish);
+        console.log('Dish restaurant_id:', dish.restaurant_id);
+        console.log('Dish id:', dish.id);
+        
+        // Проверяем, что все необходимые данные есть
+        if (!dish.restaurant_id) {
+          console.error('restaurant_id is missing or undefined');
+          alert('Ошибка: не удалось определить ресторан');
+          return;
+        }
+        
+        if (!dish.id) {
+          console.error('dish.id is missing or undefined');
+          alert('Ошибка: не удалось определить блюдо');
+          return;
+        }
+        
+        const cartData = { 
+          restaurant_id: dish.restaurant_id, 
+          dish_id: dish.id, 
+          qty, 
+          chosen_options: chosen 
+        };
+        
+        console.log('Sending cart data:', cartData);
+        
+        const res = await fetch(api + '/cart/items' + (uid ? ('?uid=' + uid) : ''), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(cartData)
+        });
+        
+        console.log('Response status:', res.status);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('Error response:', errorText);
+          throw new Error(`HTTP ${res.status}: ${errorText}`);
+        }
+        
+        const data = await res.json();
+        console.log('Response data:', data);
+        
+                 if (data.status === 'ok') {
+           return;
+         }
+        if (data && data.status === 'too_many_restaurants') {
+          showTooManyModal(data.current_restaurant_ids || [], async () => {
+                         await fetch(api + '/cart/items?force=true' + (uid ? ('&uid=' + uid) : ''), {
+               method: 'POST', headers,
+               body: JSON.stringify(cartData)
+             });
+          });
+        } else {
+                     // После успешного добавления меняем кнопку
+           addBtn.textContent = 'Далее';
+           addBtn.style.background = '#28a745';
+           addBtn.style.borderColor = '#28a745';
+        }
+      } catch (error) {
+        console.error('Error adding to cart:', error);
+      }
+    };
+
+    console.log('About to call load() function');
+    load();
+    console.log('load() function called');
+
+    function bindNav() {
+      const toUrl = (path) => { const q = new URLSearchParams(location.search); if (!q.get('ngrok-skip-browser-warning')) q.set('ngrok-skip-browser-warning','1'); return path + '?' + q.toString(); };
+      document.getElementById('navHome').onclick = (e) => { e.preventDefault(); location.href = toUrl('/static/index.html'); };
+      document.getElementById('navCart').onclick = (e) => { e.preventDefault(); location.href = toUrl('/static/cart.html'); };
+      document.getElementById('navProfile').onclick = (e) => { e.preventDefault(); location.href = toUrl('/static/profile.html'); };
+      document.getElementById('navMenu').onclick = (e) => { e.preventDefault(); const q = new URLSearchParams(location.search); if (!q.get('ngrok-skip-browser-warning')) q.set('ngrok-skip-browser-warning','1'); location.href = '/static/restaurant.html?id=' + (dish?.restaurant_id || 0) + '&' + q.toString(); };
+      document.getElementById('back').onclick = (e) => { e.preventDefault(); const q = new URLSearchParams(location.search); if (!q.get('ngrok-skip-browser-warning')) q.set('ngrok-skip-browser-warning','1'); location.href = '/static/restaurant.html?id=' + (dish?.restaurant_id || 0) + '&' + q.toString(); };
+    }
+    
+    
+    
+    
+
+    // overlay utils (shared styles already exist)
+    function ensureOverlay() {
+      let ov = document.getElementById('ov');
+      if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'ov';
+        ov.className = 'overlay';
+        ov.innerHTML = '<div class="modal"><h3>Слишком много корзин</h3><div class="muted">Удалите корзину, чтобы собрать новую</div><div id="ovList"></div><div style="margin-top:10px;text-align:right"><button id="ovDone" class="primary">Готово</button></div></div>';
+        document.body.appendChild(ov);
+      }
+      return ov;
+    }
+
+    async function showTooManyModal(restIds, onDone) {
+      const ov = ensureOverlay();
+      const list = ov.querySelector('#ovList');
+      list.innerHTML = '';
+      const resR = await fetch(api + '/restaurants/_bulk?ids=' + encodeURIComponent(restIds.join(',')) + (uid ? ('&uid=' + uid) : '')); 
+      const rests = resR.ok ? await resR.json() : [];
+      rests.forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<div>${r.name}</div><button class="trash">🗑</button>`;
+        row.querySelector('.trash').onclick = async () => {
+          await fetch(api + '/cart/clear?restaurant_id=' + r.id + (uid ? ('&uid=' + uid) : ''), { method: 'POST' });
+          row.remove();
+        };
+        list.appendChild(row);
+      });
+      ov.style.display = 'flex';
+      ov.querySelector('#ovDone').onclick = async () => { ov.style.display = 'none'; if (onDone) await onDone(); };
+    }
+  </script>
+</body>
+</html>
+

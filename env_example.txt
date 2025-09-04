@@ -1,0 +1,24 @@
+# Настройки SMTP для отправки email уведомлений
+# Пример для Gmail:
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+FROM_EMAIL=your-email@gmail.com
+
+# Для других провайдеров:
+# Yandex:
+# SMTP_SERVER=smtp.yandex.ru
+# SMTP_PORT=587
+# SMTP_USERNAME=your-email@yandex.ru
+# SMTP_PASSWORD=your-password
+
+# Mail.ru:
+# SMTP_SERVER=smtp.mail.ru
+# SMTP_PORT=587
+# SMTP_USERNAME=your-email@mail.ru
+# SMTP_PASSWORD=your-password
+
+# Основные настройки приложения
+WEBAPP_URL=https://your-domain.com
+INTERNAL_API_URL=https://your-domain.com 

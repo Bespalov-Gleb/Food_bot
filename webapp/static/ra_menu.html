@@ -1,0 +1,874 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Управление меню</title>
+  <link rel="stylesheet" href="/static/styles.v23.css?v=29" />
+  <style>
+    .admin-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    
+    .admin-btn {
+      padding: 10px 12px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    
+    .admin-btn:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+    
+    .menu-item {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .menu-title {
+      font-weight: 600;
+      color: #1e293b;
+    }
+    
+    .menu-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    
+    .menu-actions button {
+      padding: 6px 12px;
+      background: white;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 32px;
+    }
+    
+    .menu-actions button:hover {
+      background: #f9fafb;
+    }
+    
+    .menu-actions button.edit {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    
+    .menu-actions button.delete {
+      background: #dc2626;
+      color: white;
+      border-color: #dc2626;
+    }
+    
+    .menu-actions button.edit:hover {
+      background: #2563eb;
+    }
+    
+    .menu-actions button.delete:hover {
+      background: #b91c1c;
+    }
+    
+    .form-group {
+      margin-bottom: 12px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 500;
+      color: #374151;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .form-group textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    
+    .form-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .form-buttons button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .form-buttons button.save {
+      background: #10b981;
+      color: white;
+    }
+    
+    .form-buttons button.cancel {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .form-buttons button.save:hover {
+      background: #059669;
+    }
+    
+    .form-buttons button.cancel:hover {
+      background: #4b5563;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 16px;
+    }
+    
+    .menu-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    /* Модальные окна */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    
+    .modal-close:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+    }
+    
+    .modal-actions button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .modal-actions .btn-cancel {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .modal-actions .btn-save {
+      background: #10b981;
+      color: white;
+    }
+    
+    .modal-actions .btn-save:hover {
+      background: #059669;
+    }
+
+    .file-upload {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+      width: 100%;
+    }
+    
+    .file-upload input[type=file] {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    
+    .file-upload-label {
+      display: block;
+      padding: 12px;
+      border: 2px dashed #d1d5db;
+      border-radius: 6px;
+      text-align: center;
+      color: #6b7280;
+      transition: all 0.2s ease;
+    }
+    
+    .file-upload:hover .file-upload-label {
+      border-color: #3b82f6;
+      color: #3b82f6;
+    }
+    
+    .image-preview {
+      max-width: 200px;
+      max-height: 150px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      object-fit: cover;
+      object-position: center;
+      width: 100%;
+      height: 150px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+    
+    .checkbox-group label {
+      margin: 0;
+      font-weight: normal;
+    }
+
+    .icon-btn {
+      padding: 6px 12px;
+      background: white;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 32px;
+    }
+    
+    .icon-btn:hover {
+      background: #f9fafb;
+    }
+    
+    .icon-btn.edit {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    
+    .icon-btn.delete {
+      background: #dc2626;
+      color: white;
+      border-color: #dc2626;
+    }
+    
+    .icon-btn.add {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+    
+    .icon-btn.save {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+    
+    .icon-btn.edit:hover {
+      background: #2563eb;
+    }
+    
+    .icon-btn.delete:hover {
+      background: #b91c1c;
+    }
+    
+    .icon-btn.add:hover {
+      background: #059669;
+    }
+    
+    .icon-btn.save:hover {
+      background: #059669;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Управление меню</h2>
+    
+    <!-- Навигация -->
+    <div class="meta" style="margin-bottom:16px">
+      <a id="navRestaurants" href="#">Рестораны</a>
+      <span style="opacity:.4;margin:0 8px">|</span>
+      <a id="navOrders" href="#">Заказы</a>
+      <span style="opacity:.4;margin:0 8px">|</span>
+      <span id="navMenu" style="font-weight:600">Управление меню</span>
+      <span style="opacity:.4;margin:0 8px">|</span>
+      <a id="navProfile" href="#">Профиль админа</a>
+    </div>
+
+    <!-- Секция управления меню -->
+    <div class="menu-section">
+      <div class="section-title">Управление меню</div>
+      <button id="loadMenu" class="admin-btn" style="width: auto;">Загрузить меню</button>
+      <div id="menu"></div>
+    </div>
+  </div>
+
+  <script>
+    const api = location.origin + '/api';
+    const q = new URLSearchParams(location.search);
+    const uid = Number(q.get('uid')) || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 0);
+    const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};
+
+    // Навигация
+    document.getElementById('navRestaurants').onclick = (e) => {
+      e.preventDefault();
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      location.href = '/static/index.html?' + p.toString();
+    };
+
+    document.getElementById('navOrders').onclick = (e) => {
+      e.preventDefault();
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      location.href = '/static/ra.html?' + p.toString();
+    };
+
+    document.getElementById('navProfile').onclick = (e) => {
+      e.preventDefault();
+      const p = new URLSearchParams(location.search);
+      if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+      location.href = '/static/ra_profile.html?' + p.toString();
+    };
+
+    // Загрузка меню
+    async function loadMenu() {
+      try {
+        const res = await fetch(api + '/ra/menu', { headers });
+        
+        if (!res.ok) {
+          document.getElementById('menu').innerHTML = '<div class="meta">Нет доступа к меню</div>';
+          return;
+        }
+        
+        const data = await res.json();
+        renderMenu(data);
+        
+      } catch (error) {
+        console.error('Ошибка загрузки меню:', error);
+        document.getElementById('menu').innerHTML = '<div class="meta">Ошибка загрузки меню</div>';
+      }
+    }
+
+    // Рендеринг меню
+    function renderMenu(data) {
+      const root = document.getElementById('menu');
+      root.innerHTML = '';
+      
+      // Панель добавления категории
+      const addCat = document.createElement('div');
+      addCat.className = 'menu-item';
+      addCat.innerHTML = `
+        <div class="section-title">Новая категория</div>
+        <div class="form-group">
+          <label>Название</label>
+          <input id="newCatName" placeholder="Название"/>
+        </div>
+        <div class="form-group">
+          <label>Сортировка</label>
+          <input id="newCatSort" placeholder="0" class="small" type="number"/>
+        </div>
+        <div class="form-buttons">
+          <button class="icon-btn add" title="Добавить категорию" id="newCatBtn">➕</button>
+        </div>`;
+      root.appendChild(addCat);
+      
+      document.getElementById('newCatBtn').onclick = async () => {
+        const name = document.getElementById('newCatName').value.trim();
+        const sort = parseInt(document.getElementById('newCatSort').value||'0',10);
+        if (!name) return;
+        await fetch(api + '/ra/categories', { method:'POST', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify({ name, sort: Number.isNaN(sort)?0:sort }) });
+        loadMenu();
+      };
+
+      data.categories.forEach(c => {
+        const box = document.createElement('div');
+        box.className = 'menu-item';
+        box.innerHTML = `<div class="section-title">${c.name}</div>`;
+        
+        const catRow = document.createElement('div');
+        catRow.className = 'form-group';
+        catRow.innerHTML = `
+          <label>Название</label>
+          <input value="${c.name}" data-cname/>
+          <label>Сортировка</label>
+          <input value="${c.sort}" data-csort class="small" type="number"/>
+          <div class="form-buttons">
+            <button class="icon-btn save" title="Сохранить" data-csave>💾</button>
+            <button class="icon-btn delete" title="Удалить" data-cdel>🗑️</button>
+          </div>`;
+        
+        catRow.querySelector('[data-csave]').onclick = async () => {
+          const name = catRow.querySelector('[data-cname]').value.trim();
+          const sort = parseInt(catRow.querySelector('[data-csort]').value||'0',10);
+          await fetch(api + '/ra/categories/' + c.id, { method:'PATCH', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify({ name, sort }) });
+          loadMenu();
+        };
+        
+        catRow.querySelector('[data-cdel]').onclick = async () => {
+          if (!confirm('Удалить категорию и все её блюда?')) return;
+          await fetch(api + '/ra/categories/' + c.id, { method:'DELETE', headers });
+          loadMenu();
+        };
+        box.appendChild(catRow);
+        
+        const ds = data.dishes.filter(d => d.category_id === c.id);
+        ds.forEach(d => {
+          const row = document.createElement('div');
+          row.className = 'menu-item';
+          row.style.marginLeft = '20px';
+          row.innerHTML = `
+            <div class="menu-header">
+              <span class="menu-title">${d.name} — ${d.price} ₽</span>
+            </div>
+            <div class="menu-actions">
+              <button class="icon-btn edit" title="Изменить" data-edit="${d.id}">✏️</button>
+              <button class="icon-btn options" title="Опции" data-opts="${d.id}">⚙️</button>
+              <button class="icon-btn delete" title="Удалить" data-id="${d.id}">🗑️</button>
+            </div>`;
+          
+          row.querySelector('[data-id]').onclick = async () => {
+            await fetch(api + '/ra/dishes/' + d.id, { method:'DELETE', headers });
+            loadMenu();
+          };
+          
+          row.querySelector('[data-edit]').onclick = () => {
+            showDishEditModal(d);
+          };
+          
+          // Кнопка опций
+          const optsBtn = row.querySelector('[data-opts]');
+          const optsContainer = document.createElement('div');
+          optsContainer.className = 'menu-item';
+          optsContainer.style.marginLeft = '20px';
+          optsBtn.onclick = async () => {
+            if (optsContainer.dataset.loaded === '1') { 
+              optsContainer.innerHTML = ''; 
+              optsContainer.dataset.loaded='0'; 
+              return; 
+            }
+            const resp = await fetch(api + '/dishes/' + d.id + '/options');
+            const dataO = await resp.json();
+            renderOptionsEditor(d, dataO, optsContainer);
+            optsContainer.dataset.loaded='1';
+          };
+          box.appendChild(row);
+          box.appendChild(optsContainer);
+        });
+        
+        // Форма добавления блюда
+        const form = document.createElement('div');
+        form.className = 'menu-item';
+        form.style.marginLeft = '20px';
+        form.innerHTML = `
+          <div class="section-title">Добавить блюдо</div>
+          <div class="form-group">
+            <label>Название</label>
+            <input data-f="name" placeholder="Название"/>
+          </div>
+          <div class="form-group">
+            <label>Цена</label>
+            <input data-f="price" placeholder="0" class="small" type="number"/>
+          </div>
+          <div class="form-buttons">
+            <button class="icon-btn add" title="Добавить блюдо" data-f="add">➕</button>
+          </div>`;
+        
+        form.querySelector('[data-f="add"]').onclick = async () => {
+          const name = form.querySelector('[data-f="name"]').value.trim();
+          const price = parseInt(form.querySelector('[data-f="price"]').value||'0',10);
+          if (!name || !price) return;
+          await fetch(api + '/ra/dishes', { method:'POST', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify({ category_id: c.id, name, price }) });
+          loadMenu();
+        };
+        box.appendChild(form);
+        root.appendChild(box);
+      });
+    }
+
+    // Модальное окно редактирования блюда
+    function showDishEditModal(dish) {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <div class="modal-title">Редактировать блюдо</div>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="form-group">
+            <label>Название</label>
+            <input type="text" id="dish-name" value="${dish.name}" />
+          </div>
+          <div class="form-group">
+            <label>Цена (₽)</label>
+            <input type="number" id="dish-price" value="${dish.price}" />
+          </div>
+          <div class="form-group">
+            <label>Описание</label>
+            <textarea id="dish-description" placeholder="Описание блюда">${dish.description || ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Фото</label>
+            <div class="file-upload">
+              <input type="file" id="dish-image-file" accept="image/*" />
+              <div class="file-upload-label">
+                ${dish.image ? 'Изменить фото' : 'Загрузить фото'}
+              </div>
+            </div>
+            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+              Загрузите любое изображение - система автоматически создаст версии для карточек (200x200), детального просмотра (400x400) и других размеров
+            </div>
+            ${dish.image ? `<img src="${dish.image}" class="image-preview" id="current-image" />` : ''}
+            <img id="new-image-preview" class="image-preview" style="display: none;" />
+          </div>
+          <div class="form-group">
+            <div class="checkbox-group">
+              <input type="checkbox" id="dish-available" ${dish.is_available ? 'checked' : ''}/>
+              <label for="dish-available">Доступно для заказа</label>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="this.closest('.modal-overlay').remove()">Отмена</button>
+            <button class="btn-save" onclick="saveDishEdit(${dish.id})">Сохранить</button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Обработчик загрузки файла
+      const fileInput = modal.querySelector('#dish-image-file');
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const preview = modal.querySelector('#new-image-preview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            modal.querySelector('#current-image').style.display = 'none';
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+    
+    // Сохранение изменений блюда
+    async function saveDishEdit(dishId) {
+      const modal = document.querySelector('.modal-overlay');
+      const name = modal.querySelector('#dish-name').value.trim();
+      const price = parseInt(modal.querySelector('#dish-price').value || '0', 10);
+      const description = modal.querySelector('#dish-description').value.trim();
+      const isAvailable = modal.querySelector('#dish-available').checked;
+      const fileInput = modal.querySelector('#dish-image-file');
+      
+      if (!name || !price) {
+        alert('Заполните название и цену');
+        return;
+      }
+      
+      const body = { name, price, description, is_available: isAvailable };
+      
+      // Если выбран новый файл, загружаем его
+      if (fileInput.files[0]) {
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+        
+        try {
+          const uploadResponse = await fetch(api + '/ra/upload-image', {
+            method: 'POST',
+            headers: { 'X-Telegram-User-Id': uid },
+            body: formData
+          });
+          
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            body.image = uploadResult.image_url;
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки изображения:', error);
+          alert('Ошибка загрузки изображения');
+          return;
+        }
+      }
+      
+      try {
+        await fetch(api + '/ra/dishes/' + dishId, {
+          method: 'PATCH',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        
+        modal.remove();
+        loadMenu();
+      } catch (error) {
+        console.error('Ошибка сохранения:', error);
+        alert('Ошибка сохранения');
+      }
+    }
+
+    // Рендеринг редактора опций
+    function renderOptionsEditor(dish, dataO, container) {
+      container.innerHTML = `<div class="section-title">Опции для блюда: ${dish.name}</div>`;
+      const groups = dataO.groups || [];
+      const options = dataO.options || [];
+      
+      // Добавить группу
+      const addG = document.createElement('div');
+      addG.className='menu-item';
+      addG.innerHTML = `
+        <div class="section-title">Новая группа</div>
+        <div class="form-group">
+          <label>Название</label>
+          <input data-n placeholder="Название"/>
+        </div>
+        <div class="form-group">
+          <label>Минимум</label>
+          <input data-min value="0" class="small" type="number"/>
+        </div>
+        <div class="form-group">
+          <label>Максимум</label>
+          <input data-max value="1" class="small" type="number"/>
+        </div>
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input type="checkbox" data-req/>
+            <label>Обязательно</label>
+          </div>
+        </div>
+        <div class="form-buttons">
+          <button class="icon-btn add" title="Добавить" data-add>➕</button>
+        </div>`;
+      
+      addG.querySelector('[data-add]').onclick = async () => {
+        const name = addG.querySelector('[data-n]').value.trim();
+        const minv = parseInt(addG.querySelector('[data-min]').value||'0',10);
+        const maxv = parseInt(addG.querySelector('[data-max]').value||'1',10);
+        const req = !!addG.querySelector('[data-req]').checked;
+        if (!name) return;
+        await fetch(api + '/ra/option-groups', { method:'POST', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify({ dish_id: dish.id, name, min_select: minv, max_select: maxv, required: req }) });
+        optsRefresh();
+      };
+      container.appendChild(addG);
+
+      groups.forEach(g => {
+        const gWrap = document.createElement('div'); 
+        gWrap.className='menu-item';
+        gWrap.innerHTML = `<div class="section-title">Группа: ${g.name}</div>`;
+        
+        const row = document.createElement('div'); 
+        row.className='form-group';
+        row.innerHTML = `
+          <label>Название</label>
+          <input value="${g.name}" data-gn/>
+          <label>Минимум</label>
+          <input value="${g.min_select}" data-min class="small" type="number"/>
+          <label>Максимум</label>
+          <input value="${g.max_select}" data-max class="small" type="number"/>
+          <div class="checkbox-group">
+            <input type="checkbox" data-req ${g.required?'checked':''}/>
+            <label>Обязательно</label>
+          </div>
+          <div class="form-buttons">
+            <button class="icon-btn save" title="Сохранить" data-save>💾</button>
+            <button class="icon-btn delete" title="Удалить" data-del>🗑️</button>
+          </div>`;
+        
+        row.querySelector('[data-save]').onclick = async () => {
+          const body = {
+            name: row.querySelector('[data-gn]').value.trim(),
+            min_select: parseInt(row.querySelector('[data-min]').value||'0',10),
+            max_select: parseInt(row.querySelector('[data-max]').value||'1',10),
+            required: !!row.querySelector('[data-req]').checked,
+          };
+          await fetch(api + '/ra/option-groups/' + g.id, { method:'PATCH', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+          optsRefresh();
+        };
+        
+        row.querySelector('[data-del]').onclick = async () => {
+          if (!confirm('Удалить группу со всеми опциями?')) return;
+          await fetch(api + '/ra/option-groups/' + g.id, { method:'DELETE', headers });
+          optsRefresh();
+        };
+        gWrap.appendChild(row);
+
+        // Список опций в группе
+        const list = document.createElement('div');
+        options.filter(o => o.group_id === g.id).forEach(o => {
+          const line = document.createElement('div'); 
+          line.className='menu-item';
+          line.style.marginLeft = '20px';
+          line.innerHTML = `
+            <div class="form-group">
+              <label>Опция</label>
+              <input value="${o.name}" data-on/>
+            </div>
+            <div class="form-group">
+              <label>Изменение цены</label>
+              <input value="${o.price_delta}" data-d class="small" type="number"/>
+            </div>
+            <div class="form-buttons">
+              <button class="icon-btn save" title="Сохранить" data-osave>💾</button>
+              <button class="icon-btn delete" title="Удалить" data-odel>🗑️</button>
+            </div>`;
+          
+          line.querySelector('[data-osave]').onclick = async () => {
+            const body = { name: line.querySelector('[data-on]').value.trim(), price_delta: parseInt(line.querySelector('[data-d]').value||'0',10) };
+            await fetch(api + '/ra/options/' + o.id, { method:'PATCH', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+            optsRefresh();
+          };
+          
+          line.querySelector('[data-odel]').onclick = async () => {
+            await fetch(api + '/ra/options/' + o.id, { method:'DELETE', headers });
+            optsRefresh();
+          };
+          list.appendChild(line);
+        });
+        gWrap.appendChild(list);
+
+        // Добавить опцию
+        const addOpt = document.createElement('div'); 
+        addOpt.className='menu-item';
+        addOpt.style.marginLeft = '20px';
+        addOpt.innerHTML = `
+          <div class="section-title">Новая опция</div>
+          <div class="form-group">
+            <label>Название</label>
+            <input data-nm placeholder="Название"/>
+          </div>
+          <div class="form-group">
+            <label>Изменение цены</label>
+            <input data-delta value="0" class="small" type="number"/>
+          </div>
+          <div class="form-buttons">
+            <button class="icon-btn add" title="Добавить" data-add>➕</button>
+          </div>`;
+        
+        addOpt.querySelector('[data-add]').onclick = async () => {
+          const nm = addOpt.querySelector('[data-nm]').value.trim();
+          const dlt = parseInt(addOpt.querySelector('[data-delta]').value||'0',10);
+          if (!nm) return;
+          await fetch(api + '/ra/options', { method:'POST', headers: { ...headers, 'Content-Type':'application/json' }, body: JSON.stringify({ group_id: g.id, name: nm, price_delta: dlt }) });
+          optsRefresh();
+        };
+        gWrap.appendChild(addOpt);
+        container.appendChild(gWrap);
+      });
+
+      async function optsRefresh(){
+        const resp = await fetch(api + '/dishes/' + dish.id + '/options');
+        const dataO2 = await resp.json();
+        renderOptionsEditor(dish, dataO2, container);
+      }
+    }
+
+    // Инициализация
+    document.getElementById('loadMenu').onclick = loadMenu;
+    loadMenu();
+  </script>
+</body>
+</html> 
