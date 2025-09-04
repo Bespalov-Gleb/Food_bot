@@ -24,6 +24,7 @@ class CartItem(BaseModel):
         extra = "allow"
 
 
+
 class Cart(BaseModel):
     items: List[CartItem]
     cutlery_count: int = 0

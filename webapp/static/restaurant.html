@@ -1,5 +1,5 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -547,200 +547,92 @@
             <span class="info-icon">⭐</span>
             <span class="info-text" id="modalRating">Рейтинг загружается...</span>
           </div>
+
         </div>
         
-        <div class="info-section">
-          <h3>Кухня</h3>
-          <div class="cuisine-tags" id="modalCuisine">
-            <!-- Теги кухни будут добавлены динамически -->
-          </div>
+        <div id="categories">
+            <!-- Категории будут загружены динамически -->
         </div>
         
-        <div class="legal-info">
-          <h4>Юридическая информация</h4>
-          <p id="modalLegalName">Название компании загружается...</p>
-          <p id="modalLegalAddress">Юридический адрес загружается...</p>
-          <p id="modalLegalDetails">Реквизиты загружаются...</p>
+        <div id="dishes">
+            <!-- Блюда будут загружены динамически -->
         </div>
-      </div>
     </div>
-  </div>
-  
-  <!-- Навигация -->
-  <div class="nav-container">
-    <a id="navHome" href="#" class="nav-item">
-      <span class="nav-icon nav-icon-home"></span>
-      <span>Главное</span>
-    </a>
-    <span class="nav-item disabled">
-      <span class="nav-icon nav-icon-promo"></span>
-      <span>Акции</span>
-    </span>
-    <a id="navCart" href="#" class="nav-item">
-      <span class="nav-icon nav-icon-cart"></span>
-      <span>Корзина</span>
-    </a>
-    <a id="navMenu" href="#" class="nav-item">
-      <span class="nav-icon nav-icon-menu"></span>
-      <span>Меню</span>
-    </a>
-    <a id="navProfile" href="#" class="nav-item">
-      <span class="nav-icon nav-icon-profile"></span>
-      <span>Профиль</span>
-    </a>
-  </div>
-  
-  <script>
-    const api = location.origin + '/api';
-    const tg = window.Telegram?.WebApp;
-    const q = new URLSearchParams(location.search);
-    const uid = (q.get('uid') && Number(q.get('uid'))) || tg?.initDataUnsafe?.user?.id || 0;
-    const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};
-    
-    let restaurantId = Number(q.get('id')) || 0;
-    let categories = [];
-    let dishes = [];
-    let cart = { items: [] };
-    let dishesMap = new Map();
-    let restaurantsMap = new Map();
-    let activeCategory = null;
-    
-    async function loadMenu() {
-      try {
-        const [catRes, dishRes, restRes] = await Promise.all([
-          fetch(api + '/categories?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { headers }),
-          fetch(api + '/dishes?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { headers }),
-          fetch(api + '/restaurants/' + restaurantId + (uid ? ('?uid=' + uid) : ''), { headers })
-        ]);
+
+    <!-- Нижняя панель оформления заказа -->
+    <div class="checkout-bar" id="checkout-bar" style="display: none;">
+        <div class="checkout-info">
+            <div class="cart-count" id="cart-count">0</div>
+            <div>
+                <div class="checkout-total" id="checkout-total">0 ₽</div>
+                <div class="checkout-note">Минимум 500 ₽</div>
+            </div>
+        </div>
+        <button class="checkout-button" onclick="goToCart()">Оформить заказ</button>
+    </div>
+
+    <script>
+        const api = location.origin + '/api';
+        const tg = window.Telegram?.WebApp;
+        const q = new URLSearchParams(location.search);
+        const uid = (q.get('uid') && Number(q.get('uid'))) || tg?.initDataUnsafe?.user?.id || 0;
+        const headers = uid ? { 'X-Telegram-User-Id': String(uid) } : {};
         
-        categories = await catRes.json();
-        dishes = await dishRes.json();
-        const restaurant = await restRes.json();
+        let restaurantId = Number(q.get('id')) || 0;
+        let categories = [];
+        let dishes = [];
+        let cart = { items: [] };
+        let dishesMap = new Map();
+        let restaurantsMap = new Map();
+        let activeCategory = null;
         
-        restaurantsMap.set(restaurant.id, restaurant);
-        
-        // Заполняем карту блюд
-        dishes.forEach(dish => {
-          dishesMap.set(dish.id, dish);
-        });
-        
-        renderRestaurantHeader(restaurant);
-        renderCategories();
-        renderDishes();
-        
-      } catch (error) {
-        console.error('Error loading menu:', error);
-      }
-    }
-    
-    function renderRestaurantHeader(restaurant) {
-      document.getElementById('restaurantName').textContent = restaurant.name;
-      document.getElementById('restaurantAddress').textContent = restaurant.address || 'Адрес не указан';
-      
-      // Формируем рейтинг
-      const rating = restaurant.rating_agg 
-        ? `★ ${Number(restaurant.rating_agg).toFixed(1)} • 48 отзывов`
-        : '★ 4.6 • 48 отзывов';
-      document.getElementById('restaurantRating').textContent = rating;
-      
-      // Формируем время доставки
-      const deliveryTime = restaurant.delivery_time_min && restaurant.delivery_time_max
-        ? `${restaurant.delivery_time_min}–${restaurant.delivery_time_max} мин`
-        : '35–45 мин';
-      document.getElementById('restaurantDelivery').textContent = deliveryTime;
-    }
-    
-    function renderCategories() {
-      const row = document.getElementById('categoriesRow');
-      row.innerHTML = '';
-      
-      categories.forEach(category => {
-        const button = document.createElement('button');
-        button.textContent = category.name;
-        button.onclick = () => {
-          activeCategory = category.id;
-          updateActiveCategory();
-          scrollToCategory(category.id);
-        };
-        row.appendChild(button);
-      });
-      
-      // Активируем первую категорию по умолчанию
-      if (categories.length > 0) {
-        activeCategory = categories[0].id;
-        updateActiveCategory();
-      }
-    }
-    
-    function updateActiveCategory() {
-      // Обновляем активную категорию в кнопках
-      document.querySelectorAll('.cat-row button').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      
-      if (activeCategory) {
-        const activeBtn = Array.from(document.querySelectorAll('.cat-row button')).find(btn => {
-          const category = categories.find(c => c.name === btn.textContent);
-          return category && category.id === activeCategory;
-        });
-        if (activeBtn) activeBtn.classList.add('active');
-      }
-    }
-    
-    function scrollToCategory(categoryId) {
-      const categoryElement = document.querySelector(`[data-category="${categoryId}"]`);
-      if (categoryElement) {
-        categoryElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-    
-    function renderDishes() {
-      const grid = document.getElementById('dishesGrid');
-      grid.innerHTML = '';
-      
-      // Группируем блюда по категориям
-      const dishesByCategory = {};
-      dishes.forEach(dish => {
-        if (!dishesByCategory[dish.category_id]) {
-          dishesByCategory[dish.category_id] = [];
+        async function loadMenu() {
+          try {
+            const [catRes, dishRes, restRes] = await Promise.all([
+              fetch(api + '/categories?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { headers }),
+              fetch(api + '/dishes?restaurant_id=' + restaurantId + (uid ? ('&uid=' + uid) : ''), { headers }),
+              fetch(api + '/restaurants/' + restaurantId + (uid ? ('?uid=' + uid) : ''), { headers })
+            ]);
+            
+            categories = await catRes.json();
+            dishes = await dishRes.json();
+            const restaurant = await restRes.json();
+            
+            restaurantsMap.set(restaurant.id, restaurant);
+            
+            // Заполняем карту блюд
+            dishes.forEach(dish => {
+              dishesMap.set(dish.id, dish);
+            });
+            
+            renderRestaurantHeader(restaurant);
+            renderCategories();
+            renderDishes();
+            
+          } catch (error) {
+            console.error('Error loading menu:', error);
+          }
         }
-        dishesByCategory[dish.category_id].push(dish);
-      });
-      
-      // Рендерим каждую категорию
-      categories.forEach(category => {
-        const categoryDishes = dishesByCategory[category.id] || [];
-        if (categoryDishes.length === 0) return;
         
-        const categoryContainer = document.createElement('div');
-        categoryContainer.className = 'category-section';
-        categoryContainer.setAttribute('data-category', category.id);
-        
-        const categoryTitle = document.createElement('h2');
-        categoryTitle.className = 'category-title';
-        categoryTitle.textContent = category.name;
-        categoryContainer.appendChild(categoryTitle);
-        
-        const dishesGrid = document.createElement('div');
-        dishesGrid.className = 'dishes-grid';
-        
-        categoryDishes.forEach(dish => {
-          const card = document.createElement('div');
-          card.className = 'dish-card';
-          
-          card.innerHTML = `
-            <img src="${dish.image || 'https://via.placeholder.com/300x200?text=No+Image'}" alt="${dish.name}" class="dish-image" />
-            <div class="dish-content">
-              <h3 class="dish-name">${dish.name}</h3>
-              <p class="dish-description">${dish.description || 'Описание отсутствует'}</p>
-              <div class="dish-price">${dish.price || 0} ₽</div>
-              <div class="dish-controls">
-                <div class="controls" data-dish="${dish.id}">
-                  <button class="add-btn">+</button>
-                </div>
+        function renderRestaurantHeader(restaurant) {
+          const container = document.getElementById('restaurant-info');
+          container.innerHTML = `
+            <div class="restaurant-header">
+              <h1 class="restaurant-name">${restaurant.name}</h1>
+              <div class="restaurant-meta">
+                <span>★ 4.6 • 48 отзывов</span>
+                <span>35–45 мин</span>
               </div>
+              <div class="restaurant-address">${restaurant.address || 'Адрес не указан'}</div>
             </div>
           `;
+        }
+        
+        function renderCategories() {
+          const container = document.getElementById('categories');
+          const row = document.createElement('div');
+          row.className = 'cat-row';
+          row.id = 'categoriesRow';
           
           // Делаем всю карточку кликабельной для перехода к блюду
           card.onclick = (e) => {
@@ -845,19 +737,24 @@
             }
             // Если опций нет, добавляем в корзину
             updateQtyClient(dishId, 1);
+
           };
-        } else {
-          // Контролы с количеством: "-" количество "+"
-          c.innerHTML = `
-            <div class="qty-controls">
-              <button class="qty-btn" data-act="dec" title="Уменьшить количество">−</button>
-              <span class="qty-display">${qty}</span>
-              <button class="qty-btn" data-act="inc" title="Увеличить количество">+</button>
-            </div>
-          `;
           
-          // Обработчик для кнопки "-"
-          c.querySelector('[data-act="dec"]').onclick = () => updateQtyClient(dishId, -1);
+          console.log('Adding to cart from restaurant:', cartData);
+          
+          const res = await fetch(location.origin + '/api/cart/items' + (uid ? ('?uid=' + uid) : ''), {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(cartData)
+          });
+          
+          console.log('Response status:', res.status);
+          
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.error('Error response:', errorText);
+            throw new Error(`HTTP ${res.status}: ${errorText}`);
+          }
           
           // Обработчик для кнопки "+"
           c.querySelector('[data-act="inc"]').onclick = () => {
@@ -888,8 +785,29 @@
           const newQty = Math.max(0, item.qty - 1);
           if (newQty === 0) {
             await fetch(api + '/cart/items/' + item.id + (uid ? ('?uid=' + uid) : ''), { method: 'DELETE', headers });
+
           } else {
-            await fetch(api + '/cart/items/' + item.id + '?qty=' + newQty + (uid ? ('&uid=' + uid) : ''), { method: 'PATCH', headers });
+            checkoutBar.style.display = 'none';
+          }
+        }
+        
+        // Функция для перехода к корзине
+        function goToCart() {
+          const p = new URLSearchParams(location.search);
+          if (!p.get('ngrok-skip-browser-warning')) p.set('ngrok-skip-browser-warning', '1');
+          p.set('r', String(restaurantId));
+          location.href = '/static/cart.html?' + p.toString();
+        }
+        
+        // Modal for too many restaurants
+        function ensureOverlay() {
+          let ov = document.getElementById('ov');
+          if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'ov';
+            ov.className = 'overlay';
+            ov.innerHTML = '<div class="modal"><h3>Слишком много корзин</h3><div class="muted">Удалите корзину, чтобы собрать новую</div><div id="ovList"></div><div style="margin-top:10px;text-align:right"><button id="ovDone" class="primary">Готово</button></div></div>';
+            document.body.appendChild(ov);
           }
           await loadCartAndSync();
         }
@@ -1104,5 +1022,6 @@
     // Modal close handler
     document.getElementById('closeModal').onclick = hideRestaurantInfo;
   </script>
+
 </body>
 </html>
