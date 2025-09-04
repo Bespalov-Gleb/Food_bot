@@ -31,62 +31,65 @@ button { padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; backgrou
 
 /* Dish grid - 2 columns */
 .dishes-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 12px; 
-    padding: 16px; 
-    box-sizing: border-box; 
+    display: grid !important; 
+    grid-template-columns: 1fr 1fr !important; 
+    gap: 12px !important; 
+    padding: 16px !important; 
+    box-sizing: border-box !important; 
+    width: 100% !important;
 }
 
 .dish-card { 
-    border: 1px solid #eee; 
-    border-radius: 12px; 
-    background: #fff; 
-    overflow: hidden; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #eee !important; 
+    border-radius: 12px !important; 
+    background: #fff !important; 
+    overflow: hidden !important; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    width: 100% !important;
+    max-width: none !important;
 }
 
 .dish-image { 
-    width: 100%; 
-    height: 120px; 
-    object-fit: cover; 
-    display: block; 
+    width: 100% !important; 
+    height: 120px !important; 
+    object-fit: cover !important; 
+    display: block !important; 
 }
 
 .dish-content { 
-    padding: 12px; 
+    padding: 12px !important; 
 }
 
 .dish-name { 
-    font-weight: 600; 
-    font-size: 14px; 
-    margin: 0 0 4px 0; 
-    color: #333; 
-    line-height: 1.3;
+    font-weight: 600 !important; 
+    font-size: 14px !important; 
+    margin: 0 0 4px 0 !important; 
+    color: #333 !important; 
+    line-height: 1.3 !important;
 }
 
 .dish-description { 
-    font-size: 12px; 
-    color: #666; 
-    margin: 0 0 8px 0; 
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: 12px !important; 
+    color: #666 !important; 
+    margin: 0 0 8px 0 !important; 
+    line-height: 1.4 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
 }
 
 .dish-price { 
-    font-weight: 700; 
-    font-size: 16px; 
-    color: #dc2626; 
-    margin: 0 0 12px 0; 
+    font-weight: 700 !important; 
+    font-size: 16px !important; 
+    color: #dc2626 !important; 
+    margin: 0 0 12px 0 !important; 
 }
 
 .dish-controls { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
+    display: flex !important; 
+    justify-content: space-between !important; 
+    align-items: center !important; 
 }
 
 /* Quantity controls in dish cards */
